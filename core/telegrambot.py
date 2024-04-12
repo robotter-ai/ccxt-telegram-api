@@ -8,6 +8,10 @@ from telegram.ext import (
 from core.tradeexcutor import TradeExecutor
 from util import formatter
 
+
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                    level=logging.DEBUG)
+
 # Constants remain unchanged
 TRADE_SELECT, SHORT_TRADE, LONG_TRADE, OPEN_ORDERS, FREE_BALANCE = range(5)
 CANCEL_ORD, PROCESS_ORD_CANCEL = range(5, 7)
@@ -28,32 +32,25 @@ class TelegramBot:
         self.application.add_handler(self.build_conversation_handler())
         self.application.add_error_handler(self.handle_error)
 
-    def show_help(self, update: Update, context: CallbackContext) -> None:
-        update.message.reply_text('Type /trade to show options')
+    async def show_help(self, update: Update, context: CallbackContext) -> None:
+        await update.message.reply_text('Type /trade to show options')
 
-    def show_options(self, update: Update, context: CallbackContext) -> int:
+    async def show_options(self, update: Update, context: CallbackContext) -> int:
         button_list = [
             [InlineKeyboardButton("Short trade", callback_data=str(SHORT_TRADE)),
              InlineKeyboardButton("Long trade", callback_data=str(LONG_TRADE))],
             [InlineKeyboardButton("Open orders", callback_data=str(OPEN_ORDERS)),
-             InlineKeyboardButton("Available balance", callback_data=str(FREE_BALANCE))],
+             InlineKeyboardButton("Available balance", callback_data=str(FREE_BALANCE))]
         ]
-        update.message.reply_text("Trade options:", reply_markup=InlineKeyboardMarkup(button_list))
+        await update.message.reply_text("Trade options:", reply_markup=InlineKeyboardMarkup(button_list))
         return TRADE_SELECT
 
-    def process_trade_selection(self, update: Update, context: CallbackContext) -> int:
+    async def process_trade_selection(self, update: Update, context: CallbackContext) -> int:
         query = update.callback_query
-        query.answer()
+        await query.answer()
         selection = int(query.data)
 
-        if selection == OPEN_ORDERS:
-            # Handle orders here
-            pass
-        elif selection == FREE_BALANCE:
-            # Handle balance here
-            pass
-
-        # Additional logic based on selection
+        # Handling based on selection
         return END_CONVERSATION
 
     def build_conversation_handler(self) -> ConversationHandler:
@@ -66,7 +63,7 @@ class TelegramBot:
             fallbacks=[CommandHandler('start', self.show_help)],
         )
 
-    def handle_error(self, update: object, context: CallbackContext) -> None:
+    async def handle_error(self, update: object, context: CallbackContext) -> None:
         logging.warning('Update "%s" caused error "%s"', update, context.error)
 
     def start_bot(self) -> None:
