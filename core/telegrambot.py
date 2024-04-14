@@ -50,6 +50,17 @@ class TelegramBot:
         await query.answer()
         selection = int(query.data)
 
+        if selection == FREE_BALANCE:
+            balance = self.exchange.free_balance
+
+            msg = "You don't have any available balance" if len(balance) == 0 \
+                else f"Your available balance:\n{formatter.format_balance(balance)}"
+
+            await self.application.bot.edit_message_text(text=msg,
+                                  chat_id=query.message.chat_id,
+                                  message_id=query.message.message_id)
+            return END_CONVERSATION
+
         # Handling based on selection
         return END_CONVERSATION
 
