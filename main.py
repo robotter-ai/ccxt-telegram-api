@@ -12,7 +12,7 @@ if __name__ == '__main__':
 
     c_dir = os.path.dirname(__file__)
     with open(os.path.join(c_dir, "config/secrets.txt")) as key_file:
-        api_key, secret, telegram_tkn, user_id = key_file.read().splitlines()
+        api_key, secret, telegram_tkn, channel_id, user_id = key_file.read().splitlines()
 
     ccxt_ex = ccxt.binance()
     ccxt_ex.apiKey = api_key
@@ -20,6 +20,6 @@ if __name__ == '__main__':
 
     exchange = CryptoExchange(ccxt_ex)
     trade_executor = TradeExecutor(exchange)
-    telegram_bot = TelegramBot(telegram_tkn, user_id, trade_executor)
+    telegram_bot = TelegramBot(telegram_tkn, channel_id, user_id, trade_executor)
 
     telegram_bot.start_bot()
