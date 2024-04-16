@@ -4,8 +4,8 @@ import logging
 import os
 from ccxt.base.types import OrderType, OrderSide
 from dotmap import DotMap
-from telegram import Update
-from telegram.ext import Application, CommandHandler, ContextTypes
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import Application, CommandHandler, ContextTypes, CallbackQueryHandler
 from typing import Any, Dict
 
 logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.DEBUG)
@@ -48,6 +48,18 @@ class Telegram:
 
 		return True
 
+	async def button_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+		query = update.callback_query
+		await query.answer()
+		data = query.data
+
+		if data == 'balance':
+			await update.message.reply_text("Please send the market ID to check balance, e.g., /balance BTC")
+		elif data == 'balances':
+			await self.get_balances(update, context)
+		else:
+			await update.message.reply_text("Unknown command.")
+
 	async def start(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
 		if not await self.validate_request(update, context):
 			return
@@ -62,8 +74,15 @@ class Telegram:
 			"/place <limit/market> <buy/sell> <marketId> <amount> <price> <stopLossPrice (optional)> - Place a custom order"
 		]
 
+		command_buttons = [
+			[InlineKeyboardButton("Balance", callback_data='balance')],
+			[InlineKeyboardButton("Balances", callback_data='balances')],
+		]
+		reply_markup = InlineKeyboardMarkup(command_buttons)
+
 		await update.message.reply_text(
-			f"Welcome to {EXCHANGE_NAME} trading bot.\nThe available commands are:\n" + "\n".join(command_list)
+			f"Welcome to {EXCHANGE_NAME} trading bot.\nThe available commands are:\n" + "\n".join(command_list),
+			reply_markup=reply_markup
 		)
 
 	async def get_balance(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -236,6 +255,8 @@ def main():
 	application.add_handler(CommandHandler("limitBuy", telegram.limit_buy_order))
 	application.add_handler(CommandHandler("limitSell", telegram.limit_sell_order))
 	application.add_handler(CommandHandler("place", telegram.place_order))
+
+	application.add_handler(CallbackQueryHandler(telegram.button_handler))
 
 	application.run_polling()
 
