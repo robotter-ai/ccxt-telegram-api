@@ -44,6 +44,7 @@ class Telegram:
 	async def validate_request(self, update: Update, _context: ContextTypes.DEFAULT_TYPE):
 		if not self.is_admin(update.message.from_user.username):
 			await update.message.reply_text(UNAUTHORIZED_USER_MESSAGE)
+
 			return False
 
 		return True
