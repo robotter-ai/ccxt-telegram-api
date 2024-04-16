@@ -10,17 +10,17 @@ from typing import Any, Dict
 
 logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.DEBUG)
 
-TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
-CHANNEL_ID = os.environ.get("TELEGRAM_CHANNEL_ID")
-ADMIN_USERNAMES = [os.environ.get("TELEGRAM_ADMIN_USERNAME")]
+TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
+CHANNEL_ID = os.getenv("TELEGRAM_CHANNEL_ID")
+ADMIN_USERNAMES = [os.getenv("TELEGRAM_ADMIN_USERNAME")]
 
-EXCHANGE_NAME = os.environ.get("EXCHANGE_ID")
-EXCHANGE_API_KEY = os.environ.get("EXCHANGE_API_KEY")
-EXCHANGE_API_SECRET = os.environ.get("EXCHANGE_API_SECRET")
-EXCHANGE_ENVIRONMENT = os.environ.get("EXCHANGE_ENVIRONMENT")
-EXCHANGE_SUB_ACCOUNT_ID = os.environ.get("EXCHANGE_SUB_ACCOUNT_ID")
+EXCHANGE_NAME = os.getenv("EXCHANGE_ID", "binance")
+EXCHANGE_API_KEY = os.getenv("EXCHANGE_API_KEY")
+EXCHANGE_API_SECRET = os.getenv("EXCHANGE_API_SECRET")
+EXCHANGE_ENVIRONMENT = os.getenv("EXCHANGE_ENVIRONMENT", "production")
+EXCHANGE_SUB_ACCOUNT_ID = os.getenv("EXCHANGE_SUB_ACCOUNT_ID")
 
-UNAUTHORIZED_USER_MESSAGE = """Unauthorized user."""
+UNAUTHORIZED_USER_MESSAGE = "Unauthorized user."
 
 exchange = ccxt.binance({
 	"apiKey": EXCHANGE_API_KEY,
@@ -44,31 +44,36 @@ class Telegram:
 	async def validate_request(self, update: Update, _context: ContextTypes.DEFAULT_TYPE):
 		if not self.is_admin(update.message.from_user.username):
 			await update.message.reply_text(UNAUTHORIZED_USER_MESSAGE)
-
 			return False
 
 		return True
 
 	async def start(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-		if not self.validate_request(update, context):
+		if not await self.validate_request(update, context):
 			return
 
+		command_list = [
+			"/balances - View all balances",
+			"/balance <marketId> - View specific market balance",
+			"/marketBuy <marketId> <amount> <price> - Place a market buy order",
+			"/marketSell <marketId> <amount> <price> - Place a market sell order",
+			"/limitBuy <marketId> <amount> <price> <stopLossPrice> - Place a limit buy order",
+			"/limitSell <marketId> <amount> <price> <stopLossPrice> - Place a limit sell order",
+			"/place <limit/market> <buy/sell> <marketId> <amount> <price> <stopLossPrice (optional)> - Place a custom order"
+		]
+
 		await update.message.reply_text(
-			f"""
-				Welcome to {EXCHANGE_NAME} trading bot.
-				The available commands are:
-					/balances
-					/balance <marketId>
-					/marketBuy <marketId> <amount> <price>
-					/marketSell <marketId> <amount> <price>
-					/limitBuy <marketId> <amount> <price> <stopLossPrice>
-					/limitSell <marketId> <amount> <price> <stopLossPrice>
-					/place <limit/market> <buy/sell> <marketId> <amount> <price> <stopLossPrice>
-			"""
+			f"Welcome to {EXCHANGE_NAME} trading bot.\nThe available commands are:\n" + "\n".join(command_list)
 		)
 
 	async def get_balance(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-		pass
+		if not self.validate_request(update, context):
+			return
+
+		market_id = context.args[0]
+		balance = self.model.get_balance(market_id)
+
+		await update.message.reply_text(dump(balance))
 
 	async def get_balances(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
 		if not self.validate_request(update, context):
@@ -79,16 +84,45 @@ class Telegram:
 		await update.message.reply_text(dump(balances))
 
 	async def market_buy_order(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-		pass
+		if not await self.validate_request(update, context):
+			return
+
+		try:
+			market_id, amount = context.args[0], float(context.args[1])
+			order = await self.model.market_buy_order(market_id, amount)
+			await update.message.reply_text(f"Market Buy Order placed: {dump(order)}")
+		except (IndexError, ValueError):
+			await update.message.reply_text("Usage: /marketBuy <marketId> <amount>")
 
 	async def market_sell_order(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-		pass
+		if not await self.validate_request(update, context):
+			return
+		try:
+			market_id, amount = context.args[0], float(context.args[1])
+			order = await self.model.market_sell_order(market_id, amount)
+			await update.message.reply_text(f"Market Sell Order placed: {dump(order)}")
+		except (IndexError, ValueError):
+			await update.message.reply_text("Usage: /marketSell <marketId> <amount>")
 
 	async def limit_buy_order(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-		pass
+		if not await self.validate_request(update, context):
+			return
+		try:
+			market_id, amount, price, stop_loss_price = context.args[0], float(context.args[1]), float(context.args[2]), float(context.args[3])
+			order = await self.model.limit_buy_order(market_id, amount, price, stop_loss_price)
+			await update.message.reply_text(f"Limit Buy Order placed: {dump(order)}")
+		except (IndexError, ValueError):
+			await update.message.reply_text("Usage: /limitBuy <marketId> <amount> <price> <stopLossPrice>")
 
 	async def limit_sell_order(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-		pass
+		if not await self.validate_request(update, context):
+			return
+		try:
+			market_id, amount, price, stop_loss_price = context.args[0], float(context.args[1]), float(context.args[2]), float(context.args[3])
+			order = await self.model.limit_sell_order(market_id, amount, price, stop_loss_price)
+			await update.message.reply_text(f"Limit Sell Order placed: {dump(order)}")
+		except (IndexError, ValueError):
+			await update.message.reply_text("Usage: /limitSell <marketId> <amount> <price> <stopLossPrice>")
 
 	async def place_order(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
 		if not self.validate_request(update, context):
@@ -101,10 +135,10 @@ class Telegram:
 			return
 
 		if len(arguments) == 5:
-			order_type, order_side, market, amount, price = arguments[0], arguments[1], arguments[2], arguments[3], arguments[4]
+			order_type, order_side, market_id, amount, price = arguments[0], arguments[1], arguments[2], arguments[3], arguments[4]
 			stop_loss_price = None
 		elif len(arguments) == 6:
-			order_type, order_side, market, amount, price, stop_loss_price = arguments[0], arguments[1], arguments[2], arguments[3], arguments[4], arguments[5]
+			order_type, order_side, market_id, amount, price, stop_loss_price = arguments[0], arguments[1], arguments[2], arguments[3], arguments[4], arguments[5]
 		else:
 			await update.message.reply_text(
 				"""Unrecognized command. Usage:\n\n/place <limit/market> <buy/sell> <marketId> <amount> <price> <stopLossPrice (optional)>""")
@@ -135,30 +169,37 @@ class Telegram:
 			await update.message.reply_text("""Invalid price. Ex.: 123.45""")
 			return
 
-		order = self.model.place_order(market, order_type, order_side, amount, price, stop_loss_price)
+		order = self.model.place_order(market_id, order_type, order_side, amount, price, stop_loss_price)
 
 		await update.message.reply_text(f"""{dump(order)}""")
 
 
 # noinspection PyMethodMayBeStatic
 class Model:
-	async def get_balance(self):
-		pass
+	async def get_balance(self, market_id: str):
+		balances = await self.get_balances()
+		balance = balances.get('total', {}).get(market_id, 0)
+
+		return {market_id: balance}
 
 	async def get_balances(self):
 		return exchange.fetch_balance()
 
-	async def market_buy_order(self):
-		pass
+	async def market_buy_order(self, market_id: str, amount: float):
+		return await exchange.create_order(market_id, "market", "buy", amount)
 
-	async def market_sell_order(self):
-		pass
+	async def market_sell_order(self, market_id: str, amount: float):
+		return await exchange.create_order(market_id, "market", "sell", amount)
 
-	async def limit_buy_order(self):
-		pass
+	async def limit_buy_order(self, market_id: str, amount: float, price: float, stop_loss_price: float):
+		return await exchange.create_order(market_id, "limit", "buy", amount, price, {
+			"stopLossPrice": stop_loss_price
+		})
 
-	async def limit_sell_order(self):
-		pass
+	async def limit_sell_order(self, market_id: str, amount: float, price: float, stop_loss_price: float):
+		return await exchange.create_order(market_id, "limit", "sell", amount, price, {
+			"stopLossPrice": stop_loss_price
+		})
 
 	async def place_order(self, market: str, order_type: OrderType, order_side: OrderSide, amount: float, price: float, stop_loss_price: float):
 		return exchange.create_order(market, order_type, order_side, amount, price, {
