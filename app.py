@@ -229,7 +229,7 @@ def main():
 	application = Application.builder().token(TELEGRAM_TOKEN).build()
 
 	application.add_handler(CommandHandler("start", telegram.start))
-	application.add_handler(CommandHandler("balances", telegram.get_balance))
+	application.add_handler(CommandHandler("balance", telegram.get_balance))
 	application.add_handler(CommandHandler("balances", telegram.get_balances))
 	application.add_handler(CommandHandler("marketBuy", telegram.market_buy_order))
 	application.add_handler(CommandHandler("marketSell", telegram.market_sell_order))
