@@ -32,6 +32,8 @@ exchange = exchange_class({
 	}
 })
 
+exchange.set_sandbox_mode(True)
+
 
 class Telegram:
 
