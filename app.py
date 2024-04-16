@@ -73,7 +73,7 @@ class Telegram:
 		market_id = context.args[0]
 		balance = await self.model.get_balance(market_id)
 
-		await update.message.reply_text(dump(balance))
+		await update.message.reply_text(str(balance))
 
 	async def get_balances(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
 		if not self.validate_request(update, context):
@@ -81,7 +81,7 @@ class Telegram:
 
 		balances = await self.model.get_balances()
 
-		await update.message.reply_text(dump(balances))
+		await update.message.reply_text(str(balances))
 
 	async def market_buy_order(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
 		if not await self.validate_request(update, context):
