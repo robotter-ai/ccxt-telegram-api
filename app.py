@@ -11,8 +11,8 @@ from typing import Any, Dict
 logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.DEBUG)
 
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
-CHANNEL_ID = os.getenv("TELEGRAM_CHANNEL_ID")
-ADMIN_USERNAMES = [os.getenv("TELEGRAM_ADMIN_USERNAME")]
+TELEGRAM_CHANNEL_ID = os.getenv("TELEGRAM_TELEGRAM_CHANNEL_ID")
+TELEGRAM_ADMIN_USERNAMES = [os.getenv("TELEGRAM_ADMIN_USERNAME")]
 
 EXCHANGE_NAME = os.getenv("EXCHANGE_ID", "binance")
 EXCHANGE_API_KEY = os.getenv("EXCHANGE_API_KEY")
@@ -40,7 +40,7 @@ class Telegram:
 
 	# noinspection PyMethodMayBeStatic
 	def is_admin(self, username):
-		return username in ADMIN_USERNAMES
+		return username in TELEGRAM_ADMIN_USERNAMES
 
 	async def validate_request(self, update: Update, _context: ContextTypes.DEFAULT_TYPE):
 		if not self.is_admin(update.message.from_user.username):
