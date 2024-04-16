@@ -71,7 +71,7 @@ class Telegram:
 			return
 
 		market_id = context.args[0]
-		balance = self.model.get_balance(market_id)
+		balance = await self.model.get_balance(market_id)
 
 		await update.message.reply_text(dump(balance))
 
@@ -79,7 +79,7 @@ class Telegram:
 		if not self.validate_request(update, context):
 			return
 
-		balances = self.model.get_balances()
+		balances = await self.model.get_balances()
 
 		await update.message.reply_text(dump(balances))
 
@@ -169,7 +169,7 @@ class Telegram:
 			await update.message.reply_text("""Invalid price. Ex.: 123.45""")
 			return
 
-		order = self.model.place_order(market_id, order_type, order_side, amount, price, stop_loss_price)
+		order = await self.model.place_order(market_id, order_type, order_side, amount, price, stop_loss_price)
 
 		await update.message.reply_text(f"""{dump(order)}""")
 
