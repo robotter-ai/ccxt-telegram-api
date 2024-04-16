@@ -22,7 +22,8 @@ EXCHANGE_SUB_ACCOUNT_ID = os.getenv("EXCHANGE_SUB_ACCOUNT_ID")
 
 UNAUTHORIZED_USER_MESSAGE = "Unauthorized user."
 
-exchange = ccxt.binance({
+exchange_class = getattr(ccxt, EXCHANGE_NAME)
+exchange = exchange_class({
 	"apiKey": EXCHANGE_API_KEY,
 	"secret": EXCHANGE_API_SECRET,
 	"options": {
