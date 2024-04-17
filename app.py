@@ -1,6 +1,3 @@
-from functools import wraps
-
-import traceback
 from collections import OrderedDict
 
 import ccxt
@@ -8,8 +5,10 @@ import jsonpickle
 import logging
 import os
 import textwrap
+import traceback
 from ccxt.base.types import OrderType, OrderSide
 from dotmap import DotMap
+from functools import wraps
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery
 from telegram.ext import Application, CommandHandler, ContextTypes, CallbackQueryHandler, filters, MessageHandler
 from typing import Any, Dict
@@ -78,7 +77,7 @@ class Telegram:
 		return True
 
 	# noinspection PyMethodMayBeStatic
-	async def send_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE, message: Any, query: CallbackQuery = None):
+	async def send_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE, message: Any, _query: CallbackQuery = None):
 		formatted = str(message)
 		max_length = 4096
 
@@ -121,11 +120,11 @@ class Telegram:
 			await self.get_balance(update, context, query)
 		elif data == 'balances':
 			await self.get_balances(update, context, query)
-		elif data == 'place':
+		elif data == 'placeOrder':
 			context.user_data['place_order'] = {}
 			await context.bot.send_message(
 				chat_id=query.message.chat_id,
-				text="Enter 'limit' or 'market' for the type of order:"
+				text="Enter the order type. Ex: market; limit"
 			)
 			context.user_data['place_order_step'] = 'ask_order_type'
 		else:
@@ -143,56 +142,41 @@ class Telegram:
 			if user_data['place_order_step'] == 'ask_order_type':
 				if text.lower() in ['limit', 'market']:
 					user_data['place_order']['type'] = text.lower()
-					user_data['place_order_step'] = 'ask_buy_sell'
-					await update.message.reply_text("Enter 'buy' or 'sell':")
+					user_data['place_order_step'] = 'ask_order_side'
+					await update.message.reply_text("Enter the order side. Ex.: buy; sell")
 				else:
-					await update.message.reply_text("Please enter a valid type ('limit' or 'market').")
-
-			elif user_data['place_order_step'] == 'ask_buy_sell':
+					await update.message.reply_text("Please enter a valid order type ('market' or 'limit').")
+			elif user_data['place_order_step'] == 'ask_order_side':
 				if text.lower() in ['buy', 'sell']:
 					user_data['place_order']['side'] = text.lower()
 					user_data['place_order_step'] = 'ask_market_id'
-					await update.message.reply_text("Enter the market ID (e.g., BTC/USD):")
+					await update.message.reply_text("Enter the market symbol/ID. Ex.: BTCUSDT")
 				else:
-					await update.message.reply_text("Please enter 'buy' or 'sell'.")
-
+					await update.message.reply_text("Please enter the order side ('buy' or 'sell').")
 			elif user_data['place_order_step'] == 'ask_market_id':
 				user_data['place_order']['market_id'] = text.upper()
 				user_data['place_order_step'] = 'ask_amount'
-				await update.message.reply_text("Enter the amount:")
-
+				await update.message.reply_text("Enter the amount. Ex.: 123.4567")
 			elif user_data['place_order_step'] == 'ask_amount':
 				try:
 					user_data['place_order']['amount'] = float(text)
 					if user_data['place_order']['type'] == 'limit':
 						user_data['place_order_step'] = 'ask_price'
-						await update.message.reply_text("Enter the price:")
+						await update.message.reply_text("Enter the price. Ex.: 123.4567")
 					else:
 						user_data['place_order_step'] = 'confirm'
-						await update.message.reply_text("Review your order and type 'confirm' to place it or 'cancel' to abort.")
+						formatted = self.beautify(user_data["place_order"])
+						await update.message.reply_text(f"Review your order and type 'confirm' to place it or 'cancel' to abort.\n\n{formatted}")
 				except ValueError:
-					await update.message.reply_text("Please enter a valid amount.")
-
+					await update.message.reply_text("Please enter a valid amount. Ex.: 123.4567")
 			elif user_data['place_order_step'] == 'ask_price':
 				try:
 					user_data['place_order']['price'] = float(text)
-					user_data['place_order_step'] = 'ask_stop_loss'
-					await update.message.reply_text("Enter the stop loss price (optional, type 'skip' to omit):")
-				except ValueError:
-					await update.message.reply_text("Please enter a valid price.")
-
-			elif user_data['place_order_step'] == 'ask_stop_loss':
-				if text.lower() == 'skip':
 					user_data['place_order_step'] = 'confirm'
-					await update.message.reply_text("Review your order and type 'confirm' to place it or 'cancel' to abort.")
-				else:
-					try:
-						user_data['place_order']['stop_loss_price'] = float(text)
-						user_data['place_order_step'] = 'confirm'
-						await update.message.reply_text("Review your order and type 'confirm' to place it or 'cancel' to abort.")
-					except ValueError:
-						await update.message.reply_text("Please enter a valid stop loss price or type 'skip'.")
-
+					formatted = self.beautify(user_data["place_order"])
+					await update.message.reply_text(f"Review your order and type 'confirm' to place it or 'cancel' to abort.\n\n{formatted}")
+				except ValueError:
+					await update.message.reply_text("Please enter a valid price. Ex.: 123.4567")
 			elif user_data['place_order_step'] == 'confirm':
 				if text.lower() == 'confirm':
 					await self.place_order(update, context, user_data['place_order'])
@@ -362,8 +346,8 @@ class Telegram:
 		if not await self.validate_request(update, context):
 			return
 		try:
-			market_id, amount, price, stop_loss_price = context.args[0], float(context.args[1]), float(context.args[2]), float(context.args[3])
-			message = await self.model.limit_buy_order(market_id, amount, price, stop_loss_price)
+			market_id, amount, price = context.args[0], float(context.args[1]), float(context.args[2])
+			message = await self.model.limit_buy_order(market_id, amount, price)
 			message = self.beautify(message)
 			message = f"Limit Buy Order placed:\n{message}"
 
@@ -377,8 +361,8 @@ class Telegram:
 		if not await self.validate_request(update, context):
 			return
 		try:
-			market_id, amount, price, stop_loss_price = context.args[0], float(context.args[1]), float(context.args[2]), float(context.args[3])
-			message = await self.model.limit_sell_order(market_id, amount, price, stop_loss_price)
+			market_id, amount, price = context.args[0], float(context.args[1]), float(context.args[2])
+			message = await self.model.limit_sell_order(market_id, amount, price)
 			message = self.beautify(message)
 			message = f"Limit Sell Order placed:\n{message}"
 
@@ -388,29 +372,29 @@ class Telegram:
 
 			await self.send_message(update, context, message)
 
-	async def place_order(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+	async def place_order(self, update: Update, context: ContextTypes.DEFAULT_TYPE, order: Dict[str, Any] = None):
 		if not self.validate_request(update, context):
 			return
 
-		arguments = context.args
-		if len(arguments) < 5:
-			message = """Unrecognized command. Usage:\n\n/place <limit/market> <buy/sell> <marketId> <amount> <price> <stopLossPrice (optional)>"""
+		order_type, order_side, market_id, amount, price = (None, None, None, None, None)
 
-			await self.send_message(update, context, message)
-
-			return
-
-		if len(arguments) == 5:
-			order_type, order_side, market_id, amount, price = arguments[0], arguments[1], arguments[2], arguments[3], arguments[4]
-			stop_loss_price = None
-		elif len(arguments) == 6:
-			order_type, order_side, market_id, amount, price, stop_loss_price = arguments[0], arguments[1], arguments[2], arguments[3], arguments[4], arguments[5]
+		if order:
+			if len(order.values()) == 4:
+				order_type, order_side, market_id, amount = order.values()
+			elif len(order.values()) == 5:
+				order_type, order_side, market_id, amount, price = order.values()
 		else:
-			message = """Unrecognized command. Usage:\n\n/place <limit/market> <buy/sell> <marketId> <amount> <price> <stopLossPrice (optional)>"""
+			arguments = context.args
+			if len(arguments) == 4:
+				order_type, order_side, market_id, amount = arguments[0], arguments[1], arguments[2], arguments[3]
+			elif len(arguments) == 5:
+				order_type, order_side, market_id, amount, price = arguments[0], arguments[1], arguments[2], arguments[3], arguments[4]
+			else:
+				message = """Unrecognized command. Usage:\n\n/place <limit/market> <buy/sell> <marketId> <amount> <price> <stopLossPrice (optional)>"""
 
-			await self.send_message(update, context, message)
+				await self.send_message(update, context, message)
 
-			return
+				return
 
 		# noinspection PyTypeChecker
 		order_type: OrderType = str(order_type).lower()
@@ -441,32 +425,41 @@ class Telegram:
 			return
 
 		try:
-			price = float(price)
+			if price is not None:
+				price = float(price)
 		except ValueError:
 			message = """Invalid price. Ex.: 123.45"""
 			await self.send_message(update, context, message)
 
 			return
 
-		message = await self.model.place_order(market_id, order_type, order_side, amount, price, stop_loss_price)
+		message = await self.model.place_order(market_id, order_type, order_side, amount, price)
 		message = self.beautify(message)
-		message = f"Order placed:\n{message}"
+		message = f"Order placed:\n\n{message}"
 
 		await self.send_message(update, context, message)
 
-	def beautify(self, target: Any, indent=0):
-		if isinstance(target, Dict):
+	def beautify(self, target: Any, indent=0) -> str:
+		if isinstance(target, dict):
 			result = ""
 			for key, value in target.items():
 				result += '  ' * indent + str(key) + ':'
-				if isinstance(value, dict):
+				if isinstance(value, (dict, list)):
 					result += "\n" + self.beautify(value, indent + 1)
 				else:
 					result += ' ' + str(value) + "\n"
-
+			return result
+		elif isinstance(target, list):
+			result = ""
+			for index, item in enumerate(target):
+				result += '  ' * indent + f"-"
+				if isinstance(item, (dict, list)):
+					result += "\n" + self.beautify(item, indent + 1)
+				else:
+					result += ' ' + str(item) + "\n"
 			return result
 		else:
-			return target
+			return '  ' * indent + str(target) + "\n"
 
 	async def handle_exception(self, update: Update, context: ContextTypes.DEFAULT_TYPE, exception: Exception):
 		formatted_exception = traceback.format_exception(exception)
@@ -509,20 +502,14 @@ class Model:
 	async def market_sell_order(self, market_id: str, amount: float):
 		return exchange.create_order(market_id, "market", "sell", amount)
 
-	async def limit_buy_order(self, market_id: str, amount: float, price: float, stop_loss_price: float):
-		return exchange.create_order(market_id, "limit", "buy", amount, price, {
-			"stopLossPrice": stop_loss_price
-		})
+	async def limit_buy_order(self, market_id: str, amount: float, price: float):
+		return exchange.create_order(market_id, "limit", "buy", amount, price)
 
-	async def limit_sell_order(self, market_id: str, amount: float, price: float, stop_loss_price: float):
-		return exchange.create_order(market_id, "limit", "sell", amount, price, {
-			"stopLossPrice": stop_loss_price
-		})
+	async def limit_sell_order(self, market_id: str, amount: float, price: float):
+		return exchange.create_order(market_id, "limit", "sell", amount, price)
 
-	async def place_order(self, market: str, order_type: OrderType, order_side: OrderSide, amount: float, price: float = None, stop_loss_price: float = None):
-		return exchange.create_order(market, order_type, order_side, amount, price, {
-			"stopLossPrice": stop_loss_price
-		})
+	async def place_order(self, market: str, order_type: OrderType, order_side: OrderSide, amount: float, price: float = None):
+		return exchange.create_order(market, order_type, order_side, amount, price)
 
 	def __getattr__(self, name):
 		attribute = getattr(exchange, name, None)
@@ -550,19 +537,35 @@ class Model:
 
 async def test():
 	model = Model()
+	telegram = Telegram()
 
 	# print(await model.get_balances())
 	# print(await model.get_balance('BTC'))
 	# print(await model.get_open_orders('BTCUSDT'))
 	# print(await model.market_buy_order('BTCUSDT', 0.00009))
 	# print(await model.market_sell_order('BTCUSDT', 0.00009))
-	print(await model.limit_buy_order('BTCUSDT', 0.001, 50000, 50001))
-	# print(await model.limit_sell_order('BTCUSDT', 0.00009, 999999.99, 1000000))
-	# print(await model.place_order('BTCUSDT', 'market', 'buy', 0.00001))
-	# print(await model.place_order('BTCUSDT', 'limit', 'sell', 0.00001, 999999.99, 1000000))
+	# print(await model.limit_buy_order('BTCUSDT', 0.001, 20000))
+	# print(await model.limit_sell_order('BTCUSDT', 0.00009, 99999))
+	# print(await model.place_order('BTCUSDT', 'market', 'buy', 0.0001))
+	# print(await model.place_order('BTCUSDT', 'limit', 'sell', 0.00009, 99999))
 
-	print(await model.fetch_balance())
-	print(await model.fetch_ticker('BTCUSDT'))
+	# print(await model.fetch_balance())
+	# print(await model.fetch_ticker('BTCUSDT'))
+
+	# await telegram.place_order(None, None, {
+	# 	"type": "market",
+	# 	"side": "buy",
+	# 	"market_id": "BTCUSDT",
+	# 	"amount": 0.00009
+	# })
+
+	# await telegram.place_order(None, None, {
+	# 	"type": "limit",
+	# 	"side": "sell",
+	# 	"market_id": "BTCUSDT",
+	# 	"amount": 0.00009,
+	# 	"price": 99999
+	# })
 
 
 def main():
@@ -589,7 +592,7 @@ def main():
 
 
 if __name__ == "__main__":
-	# main()
-
 	import asyncio
 	asyncio.get_event_loop().run_until_complete(test())
+
+	main()
