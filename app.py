@@ -1,3 +1,4 @@
+import textwrap
 from collections import OrderedDict
 
 import asyncio
@@ -191,18 +192,6 @@ class Telegram:
 		if not await self.validate_request(update, context):
 			return
 
-		command_list = [
-			"/balances - View all balances",
-			"/balance <marketId> - View specific market balance",
-			"/openOrders <marketId> - Get all open orders, optionally from a market",
-			"/marketBuy <marketId> <amount> <price> - Place a market buy order",
-			"/marketSell <marketId> <amount> <price> - Place a market sell order",
-			"/limitBuy <marketId> <amount> <price> <stopLossPrice> - Place a limit buy order",
-			"/limitSell <marketId> <amount> <price> <stopLossPrice> - Place a limit sell order",
-			"/place <limit/market> <buy/sell> <marketId> <amount> <price> <stopLossPrice (optional)> - Place a custom order",
-			"/<anyCCXTMethod> <arg1Value> <arg2Value> <arg3Name>=<arg3Value> <arg4Name>=<arg4Value> ... - Or try any CCXT command. Ex: /fetch_ticker BTCUSDT; /fetch_ticker symbol=BTCUSDT"
-		]
-
 		command_buttons = [
 			[InlineKeyboardButton("Balances", callback_data="balances")],
 			[InlineKeyboardButton("Balance", callback_data="balance")],
@@ -216,8 +205,51 @@ class Telegram:
 		reply_markup = InlineKeyboardMarkup(command_buttons)
 
 		await update.message.reply_text(
-			f"""Welcome to {EXCHANGE_NAME} trading bot!\n\n\nThe available commands are:\n\n"""
-			+ "\n\n".join(command_list),
+			textwrap.dedent(
+				f"""
+					**🤖 Welcome to {str(EXCHANGE_NAME).upper()} Trading Bot! 📈**
+					
+					Here are the available commands:
+					
+					*🔍 Query Commands:*
+						- `/balances`
+							(View all balances)
+						
+						- `/balance <marketId>`
+							(View specific balance from a market)
+						
+						- `/openOrders <marketId>`
+							(Get all open orders from a market)
+					
+					*🛒 Trading Commands:*
+						- `/marketBuy <marketId> <amount> <price>`:
+							(Place a market buy order)
+						
+						- `/marketSell <marketId> <amount> <price>`:
+							(Place a market sell order)
+						
+						- `/limitBuy <marketId> <amount> <price> <stopLossPrice>`:
+							(Place a limit buy order)
+						
+						- `/limitSell <marketId> <amount> <price> <stopLossPrice>`:
+							(Place a limit sell order)
+						
+						- `/place <limit/market> <buy/sell> <marketId> <amount> <price> [<stopLossPrice>]`
+							(Place a custom order)
+					
+					*🔧 Advanced Commands:*
+						With this special command you can theoretically try any available CCXT command. Some examples are:
+						
+							/fetchTicker BTCUSDT
+							/fetchTicker symbol=BTCUSDT
+						
+						- `/<anyCCXTMethod> <arg1Value> <arg2Name>=<arg2Value>`
+							(Theoretically any CCXT command)
+					
+					Feel free to explore and trade safely! 🚀
+				"""
+			),
+			parse_mode="Markdown",
 			reply_markup=reply_markup
 		)
 
@@ -501,7 +533,7 @@ def main():
 	application.add_handler(CallbackQueryHandler(telegram.button_handler))
 
 	application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, telegram.handle_text_message))
-	application.add_handler(MessageHandler(~filters.TEXT & filters.COMMAND, telegram.magic_command))
+	application.add_handler(MessageHandler(filters.COMMAND, telegram.magic_command))
 
 	application.run_polling()
 
