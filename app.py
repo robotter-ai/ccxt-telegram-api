@@ -199,10 +199,10 @@ class Telegram:
 			[InlineKeyboardButton("Get a Token Balance", callback_data="balance")],
 			[InlineKeyboardButton("Get All Balances", callback_data="balances")],
 			[InlineKeyboardButton("Getl All Open Orders from a Market", callback_data="openOrders")],
-			[InlineKeyboardButton("Place a Market Buy Order", callback_data="marketBuyOrder")],
-			[InlineKeyboardButton("Place a Market Sell Order", callback_data="marketSellOrder")],
-			[InlineKeyboardButton("Place a Limit Buy Order", callback_data="limitBuyOrder")],
-			[InlineKeyboardButton("Place a Limit Sell Order", callback_data="limitSellOrder")],
+			# [InlineKeyboardButton("Place a Market Buy Order", callback_data="marketBuyOrder")],
+			# [InlineKeyboardButton("Place a Market Sell Order", callback_data="marketSellOrder")],
+			# [InlineKeyboardButton("Place a Limit Buy Order", callback_data="limitBuyOrder")],
+			# [InlineKeyboardButton("Place a Limit Sell Order", callback_data="limitSellOrder")],
 			[InlineKeyboardButton("Place a Custom Order", callback_data="placeOrder")],
 		]
 		reply_markup = InlineKeyboardMarkup(command_buttons)
@@ -212,9 +212,45 @@ class Telegram:
 				f"""
 					**🤖 Welcome to {str(EXCHANGE_NAME).upper()} Trading Bot! 📈**
 					
+					Available commands:
+					
+					`/help`
+					`/balances`
+					`/balance <marketId>`
+					`/openOrders <marketId>`
+					`/marketBuyOrder <marketId> <amount> <price>`
+					`/marketSellOrder <marketId> <amount> <price>`
+					`/limitBuyOrder <marketId> <amount> <price> <stopLossPrice>`
+					`/limitSellOrder <marketId> <amount> <price> <stopLossPrice>`
+					`/placeOrder <limit/market> <buy/sell> <marketId> <amount> <price> [<stopLossPrice>]`
+					`/<anyCCXTMethod> <arg1Value> <arg2Name>=<arg2Value>`
+					
+					Type /help to get more information.
+					Feel free to explore and trade safely! 🚀
+				"""
+			),
+			parse_mode="Markdown",
+			reply_markup=reply_markup
+		)
+
+	async def help(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+		if not await self.validate_request(update, context):
+			return
+
+		await update.message.reply_text(
+			textwrap.dedent(
+				f"""
+					**🤖 Welcome to {str(EXCHANGE_NAME).upper()} Trading Bot! 📈**
+					
 					Here are the available commands:
 					
+					*ℹ️ Util Commands:*
+					
+						- `/help`
+							(Show this information)
+					
 					*🔍 Query Commands:*
+					
 						- `/balances`
 							(View all balances)
 						
@@ -225,22 +261,24 @@ class Telegram:
 							(Get all open orders from a market)
 					
 					*🛒 Trading Commands:*
-						- `/marketBuyOrder <marketId> <amount> <price>`:
+					
+						- `/marketBuyOrder <marketId> <amount> <price>`
 							(Place a market buy order)
 						
-						- `/marketSellOrder <marketId> <amount> <price>`:
+						- `/marketSellOrder <marketId> <amount> <price>`
 							(Place a market sell order)
 						
-						- `/limitBuyOrder <marketId> <amount> <price> <stopLossPrice>`:
+						- `/limitBuyOrder <marketId> <amount> <price> <stopLossPrice>`
 							(Place a limit buy order)
 						
-						- `/limitSellOrder <marketId> <amount> <price> <stopLossPrice>`:
+						- `/limitSellOrder <marketId> <amount> <price> <stopLossPrice>`
 							(Place a limit sell order)
 						
 						- `/placeOrder <limit/market> <buy/sell> <marketId> <amount> <price> [<stopLossPrice>]`
 							(Place a custom order)
 					
 					*🔧 Advanced Commands:*
+					
 						With this special command you can theoretically try any available CCXT command. Some examples are:
 						
 							/fetchTicker BTCUSDT
@@ -253,7 +291,6 @@ class Telegram:
 				"""
 			),
 			parse_mode="Markdown",
-			reply_markup=reply_markup
 		)
 
 	async def magic_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -574,6 +611,7 @@ def main():
 	application = Application.builder().token(TELEGRAM_TOKEN).build()
 
 	application.add_handler(CommandHandler("start", telegram.start))
+	application.add_handler(CommandHandler("help", telegram.help))
 	application.add_handler(CommandHandler("balance", telegram.get_balance))
 	application.add_handler(CommandHandler("balances", telegram.get_balances))
 	application.add_handler(CommandHandler("openOrders", telegram.get_open_orders))
