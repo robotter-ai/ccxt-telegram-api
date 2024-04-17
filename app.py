@@ -8,7 +8,7 @@ import logging
 import os
 from ccxt.base.types import OrderType, OrderSide
 from dotmap import DotMap
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery
 from telegram.ext import Application, CommandHandler, ContextTypes, CallbackQueryHandler, filters, MessageHandler
 from telegram.ext._utils.types import FilterDataDict
 from typing import Any, Dict, Optional, Union
@@ -58,16 +58,39 @@ class Telegram:
 		return True
 
 	# noinspection PyMethodMayBeStatic
-	async def send_message(self, update: Update, _context: ContextTypes.DEFAULT_TYPE, message: Any):
+	async def send_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE, message: Any, query: CallbackQuery = None):
 		formatted = str(message)
 		max_length = 4096
 
+		def get_chat_id(update):
+			if update.message:
+				return update.message.chat_id
+			elif update.callback_query:
+				return update.callback_query.message.chat_id
+			else:
+				return None
+
+		def get_reply_method(update: Any = None):
+			if update:
+				if update.message:
+					return update.message.reply_text
+				elif update.callback_query:
+					# Another possible option to investigate: query.message.reply_text
+
+					async def send_message(message: str):
+						await context.bot.send_message(get_chat_id(update), message)
+
+					return send_message
+
+		reply_method = get_reply_method(update)
+
 		if len(formatted) <= max_length:
-			await update.message.reply_text(formatted)
+			await reply_method(formatted)
 		else:
 			for start in range(0, len(formatted), max_length):
-				part = formatted[start:start + max_length]
-				await update.message.reply_text(part)
+				message_part = formatted[start:start + max_length]
+
+				await reply_method(message_part)
 
 	async def button_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
 		query = update.callback_query
@@ -75,13 +98,13 @@ class Telegram:
 		data = query.data
 
 		if data == 'balance':
-			await self.get_balance(update, context)
+			await self.get_balance(update, context, query)
 		elif data == 'balances':
-			await self.get_balances(update, context)
+			await self.get_balances(update, context, query)
 		else:
 			message = "Unknown command."
 
-			await self.send_message(update, context, message)
+			await self.send_message(update, context, message, query)
 
 			return
 
@@ -142,22 +165,22 @@ class Telegram:
 
 		await self.send_message(update, context, message)
 
-	async def get_balance(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+	async def get_balance(self, update: Update, context: ContextTypes.DEFAULT_TYPE, query: CallbackQuery = None):
 		if not self.validate_request(update, context):
 			return
 
 		market_id = context.args[0]
 		message = await self.model.get_balance(market_id)
 
-		await self.send_message(update, context, message)
+		await self.send_message(update, context, message, query)
 
-	async def get_balances(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+	async def get_balances(self, update: Update, context: ContextTypes.DEFAULT_TYPE, query: CallbackQuery = None):
 		if not self.validate_request(update, context):
 			return
 
 		message = await self.model.get_balances()
 
-		await self.send_message(update, context, message)
+		await self.send_message(update, context, message, query)
 
 	async def get_open_orders(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
 		if not self.validate_request(update, context):
