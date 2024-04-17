@@ -1,3 +1,7 @@
+from collections import OrderedDict
+
+import asyncio
+
 import ccxt
 import jsonpickle
 import logging
@@ -5,8 +9,9 @@ import os
 from ccxt.base.types import OrderType, OrderSide
 from dotmap import DotMap
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import Application, CommandHandler, ContextTypes, CallbackQueryHandler
-from typing import Any, Dict
+from telegram.ext import Application, CommandHandler, ContextTypes, CallbackQueryHandler, filters, MessageHandler
+from telegram.ext._utils.types import FilterDataDict
+from typing import Any, Dict, Optional, Union
 
 logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.DEBUG)
 
@@ -52,17 +57,33 @@ class Telegram:
 
 		return True
 
+	# noinspection PyMethodMayBeStatic
+	async def send_message(self, update: Update, _context: ContextTypes.DEFAULT_TYPE, message: Any):
+		formatted = str(message)
+		max_length = 4096
+
+		if len(formatted) <= max_length:
+			await update.message.reply_text(formatted)
+		else:
+			for start in range(0, len(formatted), max_length):
+				part = formatted[start:start + max_length]
+				await update.message.reply_text(part)
+
 	async def button_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
 		query = update.callback_query
 		await query.answer()
 		data = query.data
 
 		if data == 'balance':
-			await update.message.reply_text("Please send the market ID to check balance, e.g., /balance BTC")
+			await self.get_balance(update, context)
 		elif data == 'balances':
 			await self.get_balances(update, context)
 		else:
-			await update.message.reply_text("Unknown command.")
+			message = "Unknown command."
+
+			await self.send_message(update, context, message)
+
+			return
 
 	async def start(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
 		if not await self.validate_request(update, context):
@@ -71,40 +92,85 @@ class Telegram:
 		command_list = [
 			"/balances - View all balances",
 			"/balance <marketId> - View specific market balance",
+			"/openOrders <marketId> - Get all open orders, optionally from a market",
 			"/marketBuy <marketId> <amount> <price> - Place a market buy order",
 			"/marketSell <marketId> <amount> <price> - Place a market sell order",
 			"/limitBuy <marketId> <amount> <price> <stopLossPrice> - Place a limit buy order",
 			"/limitSell <marketId> <amount> <price> <stopLossPrice> - Place a limit sell order",
-			"/place <limit/market> <buy/sell> <marketId> <amount> <price> <stopLossPrice (optional)> - Place a custom order"
+			"/place <limit/market> <buy/sell> <marketId> <amount> <price> <stopLossPrice (optional)> - Place a custom order",
+			"/<anyCCXTMethod> <arg1Value> <arg2Value> <arg3Name>=<arg3Value> <arg4Name>=<arg4Value> ... - Or try any CCXT command. Ex: /fetch_ticker BTCUSDT; /fetch_ticker symbol=BTCUSDT"
 		]
 
 		command_buttons = [
-			[InlineKeyboardButton("Balance", callback_data='balance')],
-			[InlineKeyboardButton("Balances", callback_data='balances')],
+			[InlineKeyboardButton("Balances", callback_data="balances")],
+			[InlineKeyboardButton("Balance", callback_data="balance")],
+			[InlineKeyboardButton("OpenOrders", callback_data="openOrders")],
+			[InlineKeyboardButton("MarketBuy", callback_data="marketBuy")],
+			[InlineKeyboardButton("MarketSell", callback_data="marketSell")],
+			[InlineKeyboardButton("LimitBuy", callback_data="limitBuy")],
+			[InlineKeyboardButton("LimitSell", callback_data="limitSell")],
+			[InlineKeyboardButton("Place", callback_data="place")],
 		]
 		reply_markup = InlineKeyboardMarkup(command_buttons)
 
 		await update.message.reply_text(
-			f"Welcome to {EXCHANGE_NAME} trading bot.\nThe available commands are:\n" + "\n".join(command_list),
+			f"""Welcome to {EXCHANGE_NAME} trading bot!\n\n\nThe available commands are:\n\n"""
+			+ "\n\n".join(command_list),
 			reply_markup=reply_markup
 		)
+
+	async def magic_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+		if not await self.validate_request(update, context):
+			return
+
+		text = update.message.text
+		command, *args = text.lstrip('/').split(maxsplit=1)
+		args = args[0] if args else ""
+
+		positional_args = []
+		named_args = {}
+
+		tokens = args.split()
+		for token in tokens:
+			if '=' in token:
+				key, value = token.split('=', 1)
+				named_args[key] = value
+			else:
+				positional_args.append(token)
+
+		message = await getattr(self.model, command)(*positional_args, **named_args)
+
+		await self.send_message(update, context, message)
 
 	async def get_balance(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
 		if not self.validate_request(update, context):
 			return
 
 		market_id = context.args[0]
-		balance = await self.model.get_balance(market_id)
+		message = await self.model.get_balance(market_id)
 
-		await update.message.reply_text(str(balance))
+		await self.send_message(update, context, message)
 
 	async def get_balances(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
 		if not self.validate_request(update, context):
 			return
 
-		balances = await self.model.get_balances()
+		message = await self.model.get_balances()
 
-		await update.message.reply_text(str(balances))
+		await self.send_message(update, context, message)
+
+	async def get_open_orders(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+		if not self.validate_request(update, context):
+			return
+
+		if len(context.args) == 1:
+			market_id = context.args.get(0)
+		else:
+			market_id = None
+
+		message = await self.model.get_open_orders(market_id)
+
+		await self.send_message(update, context, message)
 
 	async def market_buy_order(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
 		if not await self.validate_request(update, context):
@@ -113,7 +179,10 @@ class Telegram:
 		try:
 			market_id, amount = context.args[0], float(context.args[1])
 			order = await self.model.market_buy_order(market_id, amount)
-			await update.message.reply_text(f"Market Buy Order placed: {dump(order)}")
+
+			message = f"Market Buy Order placed: {dump(order)}"
+
+			await self.send_message(update, context, message)
 		except (IndexError, ValueError):
 			await update.message.reply_text("Usage: /marketBuy <marketId> <amount>")
 
@@ -123,9 +192,14 @@ class Telegram:
 		try:
 			market_id, amount = context.args[0], float(context.args[1])
 			order = await self.model.market_sell_order(market_id, amount)
-			await update.message.reply_text(f"Market Sell Order placed: {dump(order)}")
+
+			message = f"Market Sell Order placed: {dump(order)}"
+
+			await self.send_message(update, context, message)
 		except (IndexError, ValueError):
-			await update.message.reply_text("Usage: /marketSell <marketId> <amount>")
+			message = "Usage: /marketSell <marketId> <amount>"
+
+			await self.send_message(update, context, message)
 
 	async def limit_buy_order(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
 		if not await self.validate_request(update, context):
@@ -133,9 +207,14 @@ class Telegram:
 		try:
 			market_id, amount, price, stop_loss_price = context.args[0], float(context.args[1]), float(context.args[2]), float(context.args[3])
 			order = await self.model.limit_buy_order(market_id, amount, price, stop_loss_price)
-			await update.message.reply_text(f"Limit Buy Order placed: {dump(order)}")
+
+			message = f"Limit Buy Order placed: {dump(order)}"
+
+			await self.send_message(update, context, message)
 		except (IndexError, ValueError):
-			await update.message.reply_text("Usage: /limitBuy <marketId> <amount> <price> <stopLossPrice>")
+			message = "Usage: /limitBuy <marketId> <amount> <price> <stopLossPrice>"
+
+			await self.send_message(update, context, message)
 
 	async def limit_sell_order(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
 		if not await self.validate_request(update, context):
@@ -143,9 +222,14 @@ class Telegram:
 		try:
 			market_id, amount, price, stop_loss_price = context.args[0], float(context.args[1]), float(context.args[2]), float(context.args[3])
 			order = await self.model.limit_sell_order(market_id, amount, price, stop_loss_price)
-			await update.message.reply_text(f"Limit Sell Order placed: {dump(order)}")
+
+			message = f"Limit Sell Order placed: {dump(order)}"
+
+			await self.send_message(update, context, message)
 		except (IndexError, ValueError):
-			await update.message.reply_text("Usage: /limitSell <marketId> <amount> <price> <stopLossPrice>")
+			message = "Usage: /limitSell <marketId> <amount> <price> <stopLossPrice>"
+
+			await self.send_message(update, context, message)
 
 	async def place_order(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
 		if not self.validate_request(update, context):
@@ -153,8 +237,10 @@ class Telegram:
 
 		arguments = context.args
 		if len(arguments) < 5:
-			await update.message.reply_text(
-				"""Unrecognized command. Usage:\n\n/place <limit/market> <buy/sell> <marketId> <amount> <price> <stopLossPrice (optional)>""")
+			message = """Unrecognized command. Usage:\n\n/place <limit/market> <buy/sell> <marketId> <amount> <price> <stopLossPrice (optional)>"""
+
+			await self.send_message(update, context, message)
+
 			return
 
 		if len(arguments) == 5:
@@ -163,8 +249,10 @@ class Telegram:
 		elif len(arguments) == 6:
 			order_type, order_side, market_id, amount, price, stop_loss_price = arguments[0], arguments[1], arguments[2], arguments[3], arguments[4], arguments[5]
 		else:
-			await update.message.reply_text(
-				"""Unrecognized command. Usage:\n\n/place <limit/market> <buy/sell> <marketId> <amount> <price> <stopLossPrice (optional)>""")
+			message = """Unrecognized command. Usage:\n\n/place <limit/market> <buy/sell> <marketId> <amount> <price> <stopLossPrice (optional)>"""
+
+			await self.send_message(update, context, message)
+
 			return
 
 		# noinspection PyTypeChecker
@@ -173,28 +261,41 @@ class Telegram:
 		order_side: OrderSide = str(order_side).lower()
 
 		if order_type not in ["limit", "market"]:
-			await update.message.reply_text("""Invalid order type. Allowed values are: limit/market""")
+			message = """Invalid order type. Allowed values are: limit/market"""
+
+			await self.send_message(update, context, message)
+
 			return
 
 		if order_side not in ["buy", "sell"]:
-			await update.message.reply_text("""Invalid order side. Allowed values are: buy/sell""")
+			message = """Invalid order side. Allowed values are: buy/sell"""
+
+			await self.send_message(update, context, message)
+
 			return
 
 		try:
 			amount = float(amount)
 		except ValueError:
-			await update.message.reply_text("""Invalid amount. Ex.: 123.45""")
+			message = """Invalid amount. Ex.: 123.45"""
+
+			await self.send_message(update, context, message)
+
 			return
 
 		try:
 			price = float(price)
 		except ValueError:
-			await update.message.reply_text("""Invalid price. Ex.: 123.45""")
+			message = """Invalid price. Ex.: 123.45"""
+			await self.send_message(update, context, message)
+
 			return
 
 		order = await self.model.place_order(market_id, order_type, order_side, amount, price, stop_loss_price)
 
-		await update.message.reply_text(f"""{dump(order)}""")
+		message = f"""{dump(order)}"""
+
+		await self.send_message(update, context, message)
 
 
 # noinspection PyMethodMayBeStatic
@@ -206,28 +307,45 @@ class Model:
 		return {market_id: balance}
 
 	async def get_balances(self):
-		return exchange.fetch_balance()
+		balances = exchange.fetch_balance()
+
+		non_zero_balances = {k: v for k, v in balances.get('total', {}).items() if v > 0}
+
+		sorted_balances = OrderedDict(sorted(non_zero_balances.items(), key=lambda x: x[1], reverse=True))
+
+		return {'total': sorted_balances}
+
+	async def get_open_orders(self, market_id: str):
+		return exchange.fetch_open_orders(market_id)
 
 	async def market_buy_order(self, market_id: str, amount: float):
-		return await exchange.create_order(market_id, "market", "buy", amount)
+		return exchange.create_order(market_id, "market", "buy", amount)
 
 	async def market_sell_order(self, market_id: str, amount: float):
-		return await exchange.create_order(market_id, "market", "sell", amount)
+		return exchange.create_order(market_id, "market", "sell", amount)
 
 	async def limit_buy_order(self, market_id: str, amount: float, price: float, stop_loss_price: float):
-		return await exchange.create_order(market_id, "limit", "buy", amount, price, {
+		return exchange.create_order(market_id, "limit", "buy", amount, price, {
 			"stopLossPrice": stop_loss_price
 		})
 
 	async def limit_sell_order(self, market_id: str, amount: float, price: float, stop_loss_price: float):
-		return await exchange.create_order(market_id, "limit", "sell", amount, price, {
+		return exchange.create_order(market_id, "limit", "sell", amount, price, {
 			"stopLossPrice": stop_loss_price
 		})
 
-	async def place_order(self, market: str, order_type: OrderType, order_side: OrderSide, amount: float, price: float, stop_loss_price: float):
+	async def place_order(self, market: str, order_type: OrderType, order_side: OrderSide, amount: float, price: float = None, stop_loss_price: float = None):
 		return exchange.create_order(market, order_type, order_side, amount, price, {
 			"stopLossPrice": stop_loss_price
 		})
+
+	def __getattr__(self, name):
+		attribute = getattr(exchange, name, None)
+		if callable(attribute):
+			async def method(*args, **kwargs):
+				return attribute(*args, **kwargs)
+			return method
+		return attribute
 
 
 def dump(target: Any):
@@ -246,6 +364,27 @@ def dump(target: Any):
 		return target
 
 
+async def test():
+	model = Model()
+
+	print(await model.get_balances())
+	print(await model.get_balance('BTC'))
+	print(await model.get_open_orders('BTCUSDT'))
+	print(await model.market_buy_order('BTCUSDT', 0.00009))
+	print(await model.market_sell_order('BTCUSDT', 0.00009))
+	print(await model.limit_buy_order('BTCUSDT', 0.001, 50000, 50001))
+	print(await model.limit_sell_order('BTCUSDT', 0.00009, 999999.99, 1000000))
+	print(await model.place_order('BTCUSDT', 'market', 'buy', 0.00001))
+	print(await model.place_order('BTCUSDT', 'limit', 'sell', 0.00001, 999999.99, 1000000))
+
+	print(await model.fetch_balance())
+	print(await model.fetch_ticker('BTCUSDT'))
+
+
+class CommandFilter(filters.UpdateFilter):
+	def filter(self, update: Update) -> Optional[Union[bool, FilterDataDict]]:
+		return update.message.text and update.message.text.startswith('/')
+
 def main():
 	telegram = Telegram()
 
@@ -254,6 +393,7 @@ def main():
 	application.add_handler(CommandHandler("start", telegram.start))
 	application.add_handler(CommandHandler("balance", telegram.get_balance))
 	application.add_handler(CommandHandler("balances", telegram.get_balances))
+	application.add_handler(CommandHandler("openOrders", telegram.get_open_orders))
 	application.add_handler(CommandHandler("marketBuy", telegram.market_buy_order))
 	application.add_handler(CommandHandler("marketSell", telegram.market_sell_order))
 	application.add_handler(CommandHandler("limitBuy", telegram.limit_buy_order))
@@ -262,8 +402,12 @@ def main():
 
 	application.add_handler(CallbackQueryHandler(telegram.button_handler))
 
+	command_filter = CommandFilter()
+	application.add_handler(MessageHandler(command_filter, telegram.magic_command))
+
 	application.run_polling()
 
 
 if __name__ == "__main__":
 	main()
+	# asyncio.get_event_loop().run_until_complete(test())
