@@ -483,16 +483,6 @@ async def test():
 	print(await model.fetch_ticker('BTCUSDT'))
 
 
-class TextFilter(filters.UpdateFilter):
-	def filter(self, update: Update) -> Optional[Union[bool, FilterDataDict]]:
-		return update.message.text and not update.message.text.startswith('/')
-
-
-class CommandFilter(filters.UpdateFilter):
-	def filter(self, update: Update) -> Optional[Union[bool, FilterDataDict]]:
-		return update.message.text and update.message.text.startswith('/')
-
-
 def main():
 	telegram = Telegram()
 
@@ -510,8 +500,8 @@ def main():
 
 	application.add_handler(CallbackQueryHandler(telegram.button_handler))
 
-	application.add_handler(MessageHandler(TextFilter(), telegram.handle_text_message))
-	application.add_handler(MessageHandler(CommandFilter(), telegram.magic_command))
+	application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, telegram.handle_text_message))
+	application.add_handler(MessageHandler(~filters.TEXT & filters.COMMAND, telegram.magic_command))
 
 	application.run_polling()
 
