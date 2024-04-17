@@ -101,12 +101,91 @@ class Telegram:
 			await self.get_balance(update, context, query)
 		elif data == 'balances':
 			await self.get_balances(update, context, query)
+		elif data == 'place':
+			context.user_data['place_order'] = {}
+			await context.bot.send_message(
+				chat_id=query.message.chat_id,
+				text="Enter 'limit' or 'market' for the type of order:"
+			)
+			context.user_data['place_order_step'] = 'ask_order_type'
 		else:
 			message = "Unknown command."
 
 			await self.send_message(update, context, message, query)
 
 			return
+
+	async def handle_text_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+		user_data = context.user_data
+		text = update.message.text
+
+		if 'place_order_step' in user_data:
+			if user_data['place_order_step'] == 'ask_order_type':
+				if text.lower() in ['limit', 'market']:
+					user_data['place_order']['type'] = text.lower()
+					user_data['place_order_step'] = 'ask_buy_sell'
+					await update.message.reply_text("Enter 'buy' or 'sell':")
+				else:
+					await update.message.reply_text("Please enter a valid type ('limit' or 'market').")
+
+			elif user_data['place_order_step'] == 'ask_buy_sell':
+				if text.lower() in ['buy', 'sell']:
+					user_data['place_order']['side'] = text.lower()
+					user_data['place_order_step'] = 'ask_market_id'
+					await update.message.reply_text("Enter the market ID (e.g., BTC/USD):")
+				else:
+					await update.message.reply_text("Please enter 'buy' or 'sell'.")
+
+			elif user_data['place_order_step'] == 'ask_market_id':
+				user_data['place_order']['market_id'] = text.upper()
+				user_data['place_order_step'] = 'ask_amount'
+				await update.message.reply_text("Enter the amount:")
+
+			elif user_data['place_order_step'] == 'ask_amount':
+				try:
+					user_data['place_order']['amount'] = float(text)
+					if user_data['place_order']['type'] == 'limit':
+						user_data['place_order_step'] = 'ask_price'
+						await update.message.reply_text("Enter the price:")
+					else:
+						user_data['place_order_step'] = 'confirm'
+						await update.message.reply_text("Review your order and type 'confirm' to place it or 'cancel' to abort.")
+				except ValueError:
+					await update.message.reply_text("Please enter a valid amount.")
+
+			elif user_data['place_order_step'] == 'ask_price':
+				try:
+					user_data['place_order']['price'] = float(text)
+					user_data['place_order_step'] = 'ask_stop_loss'
+					await update.message.reply_text("Enter the stop loss price (optional, type 'skip' to omit):")
+				except ValueError:
+					await update.message.reply_text("Please enter a valid price.")
+
+			elif user_data['place_order_step'] == 'ask_stop_loss':
+				if text.lower() == 'skip':
+					user_data['place_order_step'] = 'confirm'
+					await update.message.reply_text("Review your order and type 'confirm' to place it or 'cancel' to abort.")
+				else:
+					try:
+						user_data['place_order']['stop_loss_price'] = float(text)
+						user_data['place_order_step'] = 'confirm'
+						await update.message.reply_text("Review your order and type 'confirm' to place it or 'cancel' to abort.")
+					except ValueError:
+						await update.message.reply_text("Please enter a valid stop loss price or type 'skip'.")
+
+			elif user_data['place_order_step'] == 'confirm':
+				if text.lower() == 'confirm':
+					await self.place_order(update, context, user_data['place_order'])
+					user_data.clear()
+				elif text.lower() == 'cancel':
+					user_data.clear()
+					await update.message.reply_text("Order canceled.")
+				else:
+					await update.message.reply_text("Please type 'confirm' to place the order or 'cancel' to abort.")
+
+		else:
+			# Handle other text messages that are not part of the order process
+			await update.message.reply_text("Please use the menu to start an action.")
 
 	async def start(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
 		if not await self.validate_request(update, context):
@@ -404,9 +483,15 @@ async def test():
 	print(await model.fetch_ticker('BTCUSDT'))
 
 
+class TextFilter(filters.UpdateFilter):
+	def filter(self, update: Update) -> Optional[Union[bool, FilterDataDict]]:
+		return update.message.text and not update.message.text.startswith('/')
+
+
 class CommandFilter(filters.UpdateFilter):
 	def filter(self, update: Update) -> Optional[Union[bool, FilterDataDict]]:
 		return update.message.text and update.message.text.startswith('/')
+
 
 def main():
 	telegram = Telegram()
@@ -425,8 +510,8 @@ def main():
 
 	application.add_handler(CallbackQueryHandler(telegram.button_handler))
 
-	command_filter = CommandFilter()
-	application.add_handler(MessageHandler(command_filter, telegram.magic_command))
+	application.add_handler(MessageHandler(TextFilter(), telegram.handle_text_message))
+	application.add_handler(MessageHandler(CommandFilter(), telegram.magic_command))
 
 	application.run_polling()
 
