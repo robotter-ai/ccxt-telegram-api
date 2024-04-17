@@ -1,18 +1,18 @@
-import textwrap
-from collections import OrderedDict
+from functools import wraps
 
-import asyncio
+import traceback
+from collections import OrderedDict
 
 import ccxt
 import jsonpickle
 import logging
 import os
+import textwrap
 from ccxt.base.types import OrderType, OrderSide
 from dotmap import DotMap
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery
 from telegram.ext import Application, CommandHandler, ContextTypes, CallbackQueryHandler, filters, MessageHandler
-from telegram.ext._utils.types import FilterDataDict
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict
 
 logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.DEBUG)
 
@@ -41,6 +41,25 @@ exchange = exchange_class({
 exchange.set_sandbox_mode(True)
 
 
+def handle_exceptions(exception_type=Exception, handler=None):
+	if handler is None:
+		handler = lambda e: print(f"An error occurred: {e}")
+
+	def class_decorator(cls):
+		for name, method in cls.__dict__.items():
+			if callable(method):
+				@wraps(method)
+				def method_wrapper(*args, method=method, **kwargs):
+					try:
+						return method(*args, **kwargs)
+					except exception_type as e:
+						handler(e)
+				setattr(cls, name, method_wrapper)
+		return cls
+	return class_decorator
+
+
+@handle_exceptions()
 class Telegram:
 
 	def __init__(self):
@@ -193,14 +212,14 @@ class Telegram:
 			return
 
 		command_buttons = [
-			[InlineKeyboardButton("Balances", callback_data="balances")],
-			[InlineKeyboardButton("Balance", callback_data="balance")],
-			[InlineKeyboardButton("OpenOrders", callback_data="openOrders")],
-			[InlineKeyboardButton("MarketBuy", callback_data="marketBuy")],
-			[InlineKeyboardButton("MarketSell", callback_data="marketSell")],
-			[InlineKeyboardButton("LimitBuy", callback_data="limitBuy")],
-			[InlineKeyboardButton("LimitSell", callback_data="limitSell")],
-			[InlineKeyboardButton("Place", callback_data="place")],
+			[InlineKeyboardButton("Get a Token Balance", callback_data="balance")],
+			[InlineKeyboardButton("Get All Balances", callback_data="balances")],
+			[InlineKeyboardButton("Getl All Open Orders from a Market", callback_data="openOrders")],
+			[InlineKeyboardButton("Place a Market Buy Order", callback_data="marketBuyOrder")],
+			[InlineKeyboardButton("Place a Market Sell Order", callback_data="marketSellOrder")],
+			[InlineKeyboardButton("Place a Limit Buy Order", callback_data="limitBuyOrder")],
+			[InlineKeyboardButton("Place a Limit Sell Order", callback_data="limitSellOrder")],
+			[InlineKeyboardButton("Place a Custom Order", callback_data="placeOrder")],
 		]
 		reply_markup = InlineKeyboardMarkup(command_buttons)
 
@@ -222,19 +241,19 @@ class Telegram:
 							(Get all open orders from a market)
 					
 					*🛒 Trading Commands:*
-						- `/marketBuy <marketId> <amount> <price>`:
+						- `/marketBuyOrder <marketId> <amount> <price>`:
 							(Place a market buy order)
 						
-						- `/marketSell <marketId> <amount> <price>`:
+						- `/marketSellOrder <marketId> <amount> <price>`:
 							(Place a market sell order)
 						
-						- `/limitBuy <marketId> <amount> <price> <stopLossPrice>`:
+						- `/limitBuyOrder <marketId> <amount> <price> <stopLossPrice>`:
 							(Place a limit buy order)
 						
-						- `/limitSell <marketId> <amount> <price> <stopLossPrice>`:
+						- `/limitSellOrder <marketId> <amount> <price> <stopLossPrice>`:
 							(Place a limit sell order)
 						
-						- `/place <limit/market> <buy/sell> <marketId> <amount> <price> [<stopLossPrice>]`
+						- `/placeOrder <limit/market> <buy/sell> <marketId> <amount> <price> [<stopLossPrice>]`
 							(Place a custom order)
 					
 					*🔧 Advanced Commands:*
@@ -273,6 +292,7 @@ class Telegram:
 				positional_args.append(token)
 
 		message = await getattr(self.model, command)(*positional_args, **named_args)
+		message = self.beautify(message)
 
 		await self.send_message(update, context, message)
 
@@ -282,6 +302,7 @@ class Telegram:
 
 		market_id = context.args[0]
 		message = await self.model.get_balance(market_id)
+		message = self.beautify(message)
 
 		await self.send_message(update, context, message, query)
 
@@ -290,6 +311,7 @@ class Telegram:
 			return
 
 		message = await self.model.get_balances()
+		message = self.beautify(message)
 
 		await self.send_message(update, context, message, query)
 
@@ -298,11 +320,12 @@ class Telegram:
 			return
 
 		if len(context.args) == 1:
-			market_id = context.args.get(0)
+			market_id = context.args[0]
 		else:
 			market_id = None
 
 		message = await self.model.get_open_orders(market_id)
+		message = self.beautify(message)
 
 		await self.send_message(update, context, message)
 
@@ -312,9 +335,9 @@ class Telegram:
 
 		try:
 			market_id, amount = context.args[0], float(context.args[1])
-			order = await self.model.market_buy_order(market_id, amount)
-
-			message = f"Market Buy Order placed: {dump(order)}"
+			message = await self.model.market_buy_order(market_id, amount)
+			message = self.beautify(message)
+			message = f"Market Buy Order placed:\n{message}"
 
 			await self.send_message(update, context, message)
 		except (IndexError, ValueError):
@@ -325,9 +348,9 @@ class Telegram:
 			return
 		try:
 			market_id, amount = context.args[0], float(context.args[1])
-			order = await self.model.market_sell_order(market_id, amount)
-
-			message = f"Market Sell Order placed: {dump(order)}"
+			message = await self.model.market_sell_order(market_id, amount)
+			message = self.beautify(message)
+			message = f"Market Sell Order placed:\n{message}"
 
 			await self.send_message(update, context, message)
 		except (IndexError, ValueError):
@@ -340,9 +363,9 @@ class Telegram:
 			return
 		try:
 			market_id, amount, price, stop_loss_price = context.args[0], float(context.args[1]), float(context.args[2]), float(context.args[3])
-			order = await self.model.limit_buy_order(market_id, amount, price, stop_loss_price)
-
-			message = f"Limit Buy Order placed: {dump(order)}"
+			message = await self.model.limit_buy_order(market_id, amount, price, stop_loss_price)
+			message = self.beautify(message)
+			message = f"Limit Buy Order placed:\n{message}"
 
 			await self.send_message(update, context, message)
 		except (IndexError, ValueError):
@@ -355,9 +378,9 @@ class Telegram:
 			return
 		try:
 			market_id, amount, price, stop_loss_price = context.args[0], float(context.args[1]), float(context.args[2]), float(context.args[3])
-			order = await self.model.limit_sell_order(market_id, amount, price, stop_loss_price)
-
-			message = f"Limit Sell Order placed: {dump(order)}"
+			message = await self.model.limit_sell_order(market_id, amount, price, stop_loss_price)
+			message = self.beautify(message)
+			message = f"Limit Sell Order placed:\n{message}"
 
 			await self.send_message(update, context, message)
 		except (IndexError, ValueError):
@@ -425,14 +448,42 @@ class Telegram:
 
 			return
 
-		order = await self.model.place_order(market_id, order_type, order_side, amount, price, stop_loss_price)
-
-		message = f"""{dump(order)}"""
+		message = await self.model.place_order(market_id, order_type, order_side, amount, price, stop_loss_price)
+		message = self.beautify(message)
+		message = f"Order placed:\n{message}"
 
 		await self.send_message(update, context, message)
 
+	def beautify(self, target: Any, indent=0):
+		if isinstance(target, Dict):
+			result = ""
+			for key, value in target.items():
+				result += '  ' * indent + str(key) + ':'
+				if isinstance(value, dict):
+					result += "\n" + self.beautify(value, indent + 1)
+				else:
+					result += ' ' + str(value) + "\n"
+
+			return result
+		else:
+			return target
+
+	async def handle_exception(self, update: Update, context: ContextTypes.DEFAULT_TYPE, exception: Exception):
+		formatted_exception = traceback.format_exception(exception)
+
+		await update.message.reply_text(
+			textwrap.dedent(
+				f"""
+					An exception occurred while executing this operation. Type /start to see the menu again.
+					
+					{formatted_exception}
+				"""
+			)
+		)
+
 
 # noinspection PyMethodMayBeStatic
+@handle_exceptions()
 class Model:
 	async def get_balance(self, market_id: str):
 		balances = await self.get_balances()
@@ -481,35 +532,34 @@ class Model:
 			return method
 		return attribute
 
+	def dump(self, target: Any):
+		try:
+			if isinstance(target, str):
+				return target
 
-def dump(target: Any):
-	try:
-		if isinstance(target, str):
+			if isinstance(target, DotMap):
+				target = target.toDict()
+
+			if isinstance(target, Dict):
+				return str(target)
+
+			return jsonpickle.encode(target, unpicklable=True, indent=2)
+		except (Exception,):
 			return target
-
-		if isinstance(target, DotMap):
-			target = target.toDict()
-
-		if isinstance(target, Dict):
-			return str(target)
-
-		return jsonpickle.encode(target, unpicklable=True, indent=2)
-	except (Exception,):
-		return target
 
 
 async def test():
 	model = Model()
 
-	print(await model.get_balances())
-	print(await model.get_balance('BTC'))
-	print(await model.get_open_orders('BTCUSDT'))
-	print(await model.market_buy_order('BTCUSDT', 0.00009))
-	print(await model.market_sell_order('BTCUSDT', 0.00009))
+	# print(await model.get_balances())
+	# print(await model.get_balance('BTC'))
+	# print(await model.get_open_orders('BTCUSDT'))
+	# print(await model.market_buy_order('BTCUSDT', 0.00009))
+	# print(await model.market_sell_order('BTCUSDT', 0.00009))
 	print(await model.limit_buy_order('BTCUSDT', 0.001, 50000, 50001))
-	print(await model.limit_sell_order('BTCUSDT', 0.00009, 999999.99, 1000000))
-	print(await model.place_order('BTCUSDT', 'market', 'buy', 0.00001))
-	print(await model.place_order('BTCUSDT', 'limit', 'sell', 0.00001, 999999.99, 1000000))
+	# print(await model.limit_sell_order('BTCUSDT', 0.00009, 999999.99, 1000000))
+	# print(await model.place_order('BTCUSDT', 'market', 'buy', 0.00001))
+	# print(await model.place_order('BTCUSDT', 'limit', 'sell', 0.00001, 999999.99, 1000000))
 
 	print(await model.fetch_balance())
 	print(await model.fetch_ticker('BTCUSDT'))
@@ -524,11 +574,11 @@ def main():
 	application.add_handler(CommandHandler("balance", telegram.get_balance))
 	application.add_handler(CommandHandler("balances", telegram.get_balances))
 	application.add_handler(CommandHandler("openOrders", telegram.get_open_orders))
-	application.add_handler(CommandHandler("marketBuy", telegram.market_buy_order))
-	application.add_handler(CommandHandler("marketSell", telegram.market_sell_order))
-	application.add_handler(CommandHandler("limitBuy", telegram.limit_buy_order))
-	application.add_handler(CommandHandler("limitSell", telegram.limit_sell_order))
-	application.add_handler(CommandHandler("place", telegram.place_order))
+	application.add_handler(CommandHandler("marketBuyOrder", telegram.market_buy_order))
+	application.add_handler(CommandHandler("marketSellOrder", telegram.market_sell_order))
+	application.add_handler(CommandHandler("limitBuyOrder", telegram.limit_buy_order))
+	application.add_handler(CommandHandler("limitSellOrder", telegram.limit_sell_order))
+	application.add_handler(CommandHandler("placeOrder", telegram.place_order))
 
 	application.add_handler(CallbackQueryHandler(telegram.button_handler))
 
@@ -539,5 +589,7 @@ def main():
 
 
 if __name__ == "__main__":
-	main()
-	# asyncio.get_event_loop().run_until_complete(test())
+	# main()
+
+	import asyncio
+	asyncio.get_event_loop().run_until_complete(test())
