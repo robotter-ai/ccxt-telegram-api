@@ -117,10 +117,22 @@ class Telegram:
 		data = query.data
 
 		if data == 'balance':
-			await self.get_balance(update, context, query)
+			context.user_data['balance'] = ""
+			await context.bot.send_message(
+				chat_id=query.message.chat_id,
+				text="Enter the token id. Ex: BTC"
+			)
+			context.user_data['balance_step'] = 'ask_token_id'
 		elif data == 'balances':
 			await self.get_balances(update, context, query)
-		elif data == 'placeOrder':
+		elif data == 'open_orders':
+			context.user_data['open_orders'] = ""
+			await context.bot.send_message(
+				chat_id=query.message.chat_id,
+				text="Enter the market id. Ex: BTCUSDT"
+			)
+			context.user_data['open_orders_step'] = 'ask_market_id'
+		elif data == 'place_order':
 			context.user_data['place_order'] = {}
 			await context.bot.send_message(
 				chat_id=query.message.chat_id,
@@ -138,6 +150,16 @@ class Telegram:
 		user_data = context.user_data
 		text = update.message.text
 
+		if 'balance_step' in user_data:
+			if user_data['balance_step'] == 'ask_token_id':
+				user_data['balance'] = text.upper()
+				await self.get_balance(update, context)
+				user_data.clear()
+		if 'open_orders_step' in user_data:
+			if user_data['open_orders_step'] == 'ask_market_id':
+				user_data['open_orders'] = text.upper().replace("/", "")
+				await self.get_open_orders(update, context)
+				user_data.clear()
 		if 'place_order_step' in user_data:
 			if user_data['place_order_step'] == 'ask_order_type':
 				if text.lower() in ['limit', 'market']:
@@ -154,7 +176,7 @@ class Telegram:
 				else:
 					await update.message.reply_text("Please enter the order side ('buy' or 'sell').")
 			elif user_data['place_order_step'] == 'ask_market_id':
-				user_data['place_order']['market_id'] = text.upper()
+				user_data['place_order']['market_id'] = text.upper().replace("/", "")
 				user_data['place_order_step'] = 'ask_amount'
 				await update.message.reply_text("Enter the amount. Ex.: 123.4567")
 			elif user_data['place_order_step'] == 'ask_amount':
@@ -189,7 +211,7 @@ class Telegram:
 
 		else:
 			# Handle other text messages that are not part of the order process
-			await update.message.reply_text("Please use the menu to start an action.")
+			await update.message.reply_text("Please use /start for the menu.")
 
 	async def start(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
 		if not await self.validate_request(update, context):
@@ -198,12 +220,12 @@ class Telegram:
 		command_buttons = [
 			[InlineKeyboardButton("Get a Token Balance", callback_data="balance")],
 			[InlineKeyboardButton("Get All Balances", callback_data="balances")],
-			[InlineKeyboardButton("Getl All Open Orders from a Market", callback_data="openOrders")],
-			# [InlineKeyboardButton("Place a Market Buy Order", callback_data="marketBuyOrder")],
-			# [InlineKeyboardButton("Place a Market Sell Order", callback_data="marketSellOrder")],
-			# [InlineKeyboardButton("Place a Limit Buy Order", callback_data="limitBuyOrder")],
-			# [InlineKeyboardButton("Place a Limit Sell Order", callback_data="limitSellOrder")],
-			[InlineKeyboardButton("Place a Custom Order", callback_data="placeOrder")],
+			[InlineKeyboardButton("Getl All Open Orders from a Market", callback_data="open_orders")],
+			# [InlineKeyboardButton("Place a Market Buy Order", callback_data="market_buy_order")],
+			# [InlineKeyboardButton("Place a Market Sell Order", callback_data="market_sell_order")],
+			# [InlineKeyboardButton("Place a Limit Buy Order", callback_data="limit_buy_order")],
+			# [InlineKeyboardButton("Place a Limit Sell Order", callback_data="limit_sell_order")],
+			[InlineKeyboardButton("Place a Custom Order", callback_data="place_order")],
 		]
 		reply_markup = InlineKeyboardMarkup(command_buttons)
 
@@ -321,8 +343,8 @@ class Telegram:
 		if not self.validate_request(update, context):
 			return
 
-		market_id = context.args[0]
-		message = await self.model.get_balance(market_id)
+		token_id = context.args[0] if context.args else context.user_data['balance']
+		message = await self.model.get_balance(token_id)
 		message = self.beautify(message)
 
 		await self.send_message(update, context, message, query)
@@ -340,10 +362,7 @@ class Telegram:
 		if not self.validate_request(update, context):
 			return
 
-		if len(context.args) == 1:
-			market_id = context.args[0]
-		else:
-			market_id = None
+		market_id = context.args[0] if context.args else context.user_data['open_orders']
 
 		message = await self.model.get_open_orders(market_id)
 		message = self.beautify(message)
