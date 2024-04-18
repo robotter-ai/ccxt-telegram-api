@@ -4,6 +4,7 @@ import json
 
 import os
 import ccxt
+# import ccxt.async_support as ccxt
 
 
 class IntegrationTests:
@@ -16,42 +17,45 @@ class IntegrationTests:
 		self.community_exchange = None
 		self.pro_exchange = None
 
-	async def run(self):
+	def run(self):
 		try:
-			print("")
+			print("begin")
 
-			# await self.create_community_exchange()
-			# await self.create_pro_exchange()
+			# self.create_community_exchange()
+			# self.create_pro_exchange()
 
-			# await self.get_all_exchanges()
-			# await self.load_markets()
-			# await self.fetch_currencies()
-			# await self.fetch_markets()
-			# await self.fetch_trading_fee()
-			# await self.create_order()
-			# await self.cancel_order()
-			# await self.fetch_balance()
-			# await self.fetch_raw_order()
-			# await self.fetch_order()
-			# await self.fetch_open_orders()
-			# await self.fetch_orders()
-			# await self.fetch_orders_all_markets()
-			# await self.fetch_order_book()
-			# await self.fetch_ticker()
-			# await self.fetch_tickers()
-			# await self.cancel_all_orders()
-			# await self.fetch_orders()
-			# await self.fetch_ohlcv()
-			# await self.fetch_trades()
-			# await self.fetch_my_trades()
-			# await self.fetch_closed_orders()
-			# await self.fetch_status()
-			# await self.deposit()
-			# await self.withdraw()
-			# await self.watch_order_book()
-			# await self.parse_order()
+			# self.get_all_exchanges()
+			# self.load_markets()
+			# self.fetch_currencies()
+			# self.fetch_markets()
+			# self.fetch_trading_fee()
+			# self.create_order()
+			# self.cancel_order()
+			# self.fetch_balance()
+			# self.fetch_raw_order()
+			# self.fetch_order()
+			# self.fetch_open_orders()
+			# self.fetch_orders()
+			# self.fetch_orders_all_markets()
+			# self.fetch_order_book()
+			# self.fetch_ticker()
+			# self.fetch_tickers()
+			# self.cancel_all_orders()
+			# self.fetch_orders()
+			# self.fetch_ohlcv()
+			# self.fetch_trades()
+			# self.fetch_my_trades()
+			# self.fetch_closed_orders()
+			# self.fetch_status()
+			# self.deposit()
+			# self.withdraw()
+			# self.watch_order_book()
+			# self.parse_order()
+
+			print("end")
 		finally:
-			await self.community_exchange.close()
+			# self.community_exchange.close()
+			pass
 
 	def log(self, target):
 		if isinstance(target, Dict):
@@ -59,11 +63,11 @@ class IntegrationTests:
 		else:
 			print(str(target))
 
-	async def get_all_exchanges(self):
+	def get_all_exchanges(self):
 		exchanges = ccxt.exchanges
 		self.log(exchanges)
 
-	async def create_community_exchange(self):
+	def create_community_exchange(self):
 		self.community_exchange = getattr(ccxt, self.exchange_id)()
 		self.community_exchange.api_key = os.getenv('API_KEY')
 		self.community_exchange.secret = os.getenv('API_SECRET')
@@ -71,7 +75,7 @@ class IntegrationTests:
 			self.community_exchange.set_sandbox_mode(True)
 		self.community_exchange.options['subaccountId'] = self.sub_account_id
 
-	async def create_pro_exchange(self):
+	def create_pro_exchange(self):
 		self.pro_exchange = getattr(ccxt.pro, self.exchange_id)()
 		self.pro_exchange.api_key = os.getenv('API_KEY')
 		self.pro_exchange.secret = os.getenv('API_SECRET')
@@ -79,44 +83,44 @@ class IntegrationTests:
 			self.community_exchange.set_sandbox_mode(True)
 		self.pro_exchange.options['subaccountId'] = self.sub_account_id
 
-	async def load_markets(self):
-		response = await self.community_exchange.load_markets()
+	def load_markets(self):
+		response = self.community_exchange.load_markets()
 		self.log(response)
 
-	async def fetch_markets(self):
-		response = await self.community_exchange.fetch_markets()
+	def fetch_markets(self):
+		response = self.community_exchange.fetch_markets()
 		self.log(response)
 
-	async def fetch_currencies(self):
-		response = await self.community_exchange.fetch_currencies()
+	def fetch_currencies(self):
+		response = self.community_exchange.fetch_currencies()
 		self.log(response)
 
-	async def fetch_ticker(self):
-		response = await self.community_exchange.fetch_ticker(self.market_symbols[0])
+	def fetch_ticker(self):
+		response = self.community_exchange.fetch_ticker(self.market_symbols[0])
 		self.log(response)
 
-	async def fetch_tickers(self):
-		response = await self.community_exchange.fetch_tickers(self.market_symbols)
+	def fetch_tickers(self):
+		response = self.community_exchange.fetch_tickers(self.market_symbols)
 		self.log(response)
 
-	async def fetch_order_book(self):
-		response = await self.community_exchange.fetch_order_book(self.market_symbols[0])
+	def fetch_order_book(self):
+		response = self.community_exchange.fetch_order_book(self.market_symbols[0])
 		self.log(response)
 
-	async def fetch_ohlcv(self):
-		response = await self.community_exchange.fetch_ohlcv()
+	def fetch_ohlcv(self):
+		response = self.community_exchange.fetch_ohlcv()
 		self.log(response)
 
-	async def fetch_trades(self):
-		response = await self.community_exchange.fetch_trades(self.market_symbols[0])
+	def fetch_trades(self):
+		response = self.community_exchange.fetch_trades(self.market_symbols[0])
 		self.log(response)
 
-	async def fetch_balance(self):
-		response = await self.community_exchange.fetch_balance()
+	def fetch_balance(self):
+		response = self.community_exchange.fetch_balance()
 		self.log(response)
 
-	async def create_order(self):
-		response = await self.community_exchange.create_order(
+	def create_order(self):
+		response = self.community_exchange.create_order(
 			self.market_symbols[0], 'limit', 'buy', 0.1, 125.0,
 			{
 				'requestId': 1,
@@ -129,70 +133,70 @@ class IntegrationTests:
 		)
 		self.log(response)
 
-	async def cancel_order(self):
-		response = await self.community_exchange.cancel_order(self.exchange_order_id, self.market_symbols[0], {'requestId': 1})
+	def cancel_order(self):
+		response = self.community_exchange.cancel_order(self.exchange_order_id, self.market_symbols[0], {'requestId': 1})
 		self.log(response)
 
-	async def cancel_all_orders(self):
-		response = await self.community_exchange.cancel_all_orders(self.market_symbols[0], {
+	def cancel_all_orders(self):
+		response = self.community_exchange.cancel_all_orders(self.market_symbols[0], {
 			'subaccountId': self.sub_account_id,
 			'requestId': 1,
 		})
 		self.log(response)
 
-	async def fetch_raw_order(self):
-		response = await self.community_exchange.fetch_raw_order(self.exchange_order_id, self.market_symbols[0], {
+	def fetch_raw_order(self):
+		response = self.community_exchange.fetch_raw_order(self.exchange_order_id, self.market_symbols[0], {
 			'subAccountId': self.sub_account_id
 		})
 		self.log(response)
 
-	async def fetch_order(self):
-		response = await self.community_exchange.fetch_order(self.exchange_order_id, self.market_symbols[0], {
+	def fetch_order(self):
+		response = self.community_exchange.fetch_order(self.exchange_order_id, self.market_symbols[0], {
 			'subAccountId': self.sub_account_id
 		})
 		self.log(response)
 
-	async def fetch_orders(self):
-		response = await self.community_exchange.fetch_orders(self.market_symbols[0], None, None, {
+	def fetch_orders(self):
+		response = self.community_exchange.fetch_orders(self.market_symbols[0], None, None, {
 			'subAccountId': self.sub_account_id
 		})
 		self.log(response)
 
-	async def fetch_orders_all_markets(self):
-		response = await self.community_exchange.fetch_orders_all_markets(None, None, {
+	def fetch_orders_all_markets(self):
+		response = self.community_exchange.fetch_orders_all_markets(None, None, {
 			'subAccountId': self.sub_account_id
 		})
 		self.log(response)
 
-	async def fetch_open_orders(self):
-		response = await self.community_exchange.fetch_open_orders(self.market_symbols[0], None, None, {
+	def fetch_open_orders(self):
+		response = self.community_exchange.fetch_open_orders(self.market_symbols[0], None, None, {
 			'subAccountId': self.sub_account_id
 		})
 		self.log(response)
 
-	async def fetch_closed_orders(self):
+	def fetch_closed_orders(self):
 		pass
 
-	async def fetch_my_trades(self):
+	def fetch_my_trades(self):
 		pass
 
-	async def deposit(self):
+	def deposit(self):
 		pass
 
-	async def withdraw(self):
-		response = await self.community_exchange.withdraw()
+	def withdraw(self):
+		response = self.community_exchange.withdraw()
 		self.log(response)
 
-	async def fetch_trading_fee(self):
-		response = await self.community_exchange.fetch_trading_fee(self.market_symbols[0])
+	def fetch_trading_fee(self):
+		response = self.community_exchange.fetch_trading_fee(self.market_symbols[0])
 		self.log(response)
 
-	async def fetch_status(self):
+	def fetch_status(self):
 		pass
 
-	async def watch_order_book(self):
-		response = await self.pro_exchange.watch_order_book(self.market_symbols[0])
+	def watch_order_book(self):
+		response = self.pro_exchange.watch_order_book(self.market_symbols[0])
 		self.log(response)
 
-	async def parse_order(self):
+	def parse_order(self):
 		pass

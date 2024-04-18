@@ -1,7 +1,7 @@
 from collections import OrderedDict
 
-# import ccxt
-import ccxt.async_support as ccxt
+import ccxt
+# import ccxt.async_support as ccxt
 import jsonpickle
 import logging
 import os
@@ -603,7 +603,7 @@ async def test():
 	tests = IntegrationTests()
 
 	tests.community_exchange = exchange
-	await tests.run()
+	tests.run()
 
 	# print(await model.get_balances())
 	# print(await model.get_balance('BTC'))
