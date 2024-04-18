@@ -18,6 +18,8 @@ class IntegrationTests:
 
 	async def run(self):
 		try:
+			print("")
+
 			# await self.create_community_exchange()
 			# await self.create_pro_exchange()
 
