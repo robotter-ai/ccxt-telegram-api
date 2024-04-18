@@ -1,6 +1,7 @@
 from collections import OrderedDict
 
-import ccxt
+# import ccxt
+import ccxt.async_support as ccxt
 import jsonpickle
 import logging
 import os
@@ -12,6 +13,8 @@ from functools import wraps
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery
 from telegram.ext import Application, CommandHandler, ContextTypes, CallbackQueryHandler, filters, MessageHandler
 from typing import Any, Dict
+
+from integration_tests import IntegrationTests
 
 logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
 
@@ -597,9 +600,13 @@ class Model:
 async def test():
 	model = Model()
 	telegram = Telegram()
+	tests = IntegrationTests()
+
+	tests.community_exchange = exchange
+	await tests.run()
 
 	# print(await model.get_balances())
-	print(await model.get_balance('BTC'))
+	# print(await model.get_balance('BTC'))
 	# print(await model.get_open_orders('BTCUSDT'))
 	# print(await model.market_buy_order('BTCUSDT', 0.00009))
 	# print(await model.market_sell_order('BTCUSDT', 0.00009))
@@ -608,6 +615,7 @@ async def test():
 	# print(await model.place_order('BTCUSDT', 'market', 'buy', 0.0001))
 	# print(await model.place_order('BTCUSDT', 'limit', 'sell', 0.00009, 99999))
 
+	# print(await model.fetch_markets())
 	# print(await model.fetch_balance())
 	# print(await model.fetch_ticker('BTCUSDT'))
 
