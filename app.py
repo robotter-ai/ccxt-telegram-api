@@ -13,11 +13,15 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, Callbac
 from telegram.ext import Application, CommandHandler, ContextTypes, CallbackQueryHandler, filters, MessageHandler
 from typing import Any, Dict
 
-logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.DEBUG)
+logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
 
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_CHANNEL_ID = os.getenv("TELEGRAM_TELEGRAM_CHANNEL_ID")
-TELEGRAM_ADMIN_USERNAMES = [os.getenv("TELEGRAM_ADMIN_USERNAME")]
+
+administrator = os.getenv("TELEGRAM_ADMIN_USERNAME", "").strip().replace("@", "")
+administrators = os.getenv("TELEGRAM_ADMIN_USERNAMES", "").split(",")
+administrators = [username.strip().replace("@", "") for username in administrators if username.strip()]
+TELEGRAM_ADMIN_USERNAMES = [administrator] + administrators if administrator else administrators
 
 EXCHANGE_NAME = os.getenv("EXCHANGE_ID", "binance")
 EXCHANGE_API_KEY = os.getenv("EXCHANGE_API_KEY")
@@ -208,7 +212,6 @@ class Telegram:
 					await update.message.reply_text("Order canceled.")
 				else:
 					await update.message.reply_text("Please type 'confirm' to place the order or 'cancel' to abort.")
-
 		else:
 			# Handle other text messages that are not part of the order process
 			await update.message.reply_text("Please use /start for the menu.")
@@ -596,7 +599,7 @@ async def test():
 	telegram = Telegram()
 
 	# print(await model.get_balances())
-	# print(await model.get_balance('BTC'))
+	print(await model.get_balance('BTC'))
 	# print(await model.get_open_orders('BTCUSDT'))
 	# print(await model.market_buy_order('BTCUSDT', 0.00009))
 	# print(await model.market_sell_order('BTCUSDT', 0.00009))
