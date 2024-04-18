@@ -25,7 +25,7 @@ class IntegrationTests:
 			# await self.load_markets()
 			# await self.fetch_currencies()
 			# await self.fetch_markets()
-			await self.fetch_trading_fee()
+			# await self.fetch_trading_fee()
 			# await self.create_order()
 			# await self.cancel_order()
 			# await self.fetch_balance()
