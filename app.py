@@ -40,7 +40,7 @@ exchange = exchange_class({
 	"secret": EXCHANGE_API_SECRET,
 	"options": {
 		"environment": EXCHANGE_ENVIRONMENT,
-		"subAccountId": EXCHANGE_SUB_ACCOUNT_ID,
+		"subaccountId": EXCHANGE_SUB_ACCOUNT_ID,
 	}
 })
 
