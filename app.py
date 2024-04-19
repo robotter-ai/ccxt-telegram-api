@@ -1,3 +1,5 @@
+import re
+
 import asyncio
 from collections import OrderedDict
 
@@ -18,6 +20,7 @@ import ccxt as sync_ccxt
 # noinspection PyUnresolvedReferences
 import ccxt.async_support as async_ccxt
 from ccxt.base.types import OrderType, OrderSide
+from integration_tests import IntegrationTests
 
 ccxt = sync_ccxt
 
@@ -65,7 +68,7 @@ def sync_handle_exceptions(method):
 					)
 				)
 			except Exception as telegram_exception:
-				logging.debug(telegram_exception)
+				logging.debug(traceback.format_exception(telegram_exception))
 
 			raise
 
@@ -81,7 +84,7 @@ def async_handle_exceptions(method):
 			try:
 				await Telegram.instance().send_message(str(exception))
 			except Exception as telegram_exception:
-				logging.debug(telegram_exception)
+				logging.debug(traceback.format_exception(telegram_exception))
 
 			raise
 
@@ -426,161 +429,223 @@ class Telegram(object):
 		if not await self.validate_request(update, context):
 			return
 
-		market_id = context.args[0] if context.args else context.user_data["open_orders"]
-		message = await self.model.get_open_orders(market_id)
+		value = context.args if context.args else data
 
-		message = self.model.beautify(message)
-		await self.send_message(message, update, context, query)
+		if self.model.validate_market_id(value):
+			market_id = self.model.sanitize_market_id(value)
+			message = await self.model.get_open_orders(market_id)
+
+			message = self.model.beautify(message)
+			await self.send_message(message, update, context, query)
+		else:
+			await self.send_message("""Please enter a valid market id ("btcusdc").""")
 
 	async def market_buy_order(self, update: Update, context: ContextTypes.DEFAULT_TYPE, query: CallbackQuery = None, data: Any = None):
 		if not await self.validate_request(update, context):
 			return
 
 		if context.args:
-			market_id, amount = context.args[0], float(context.args[1])
+			market_id = context.args[0]
+			amount = context.args[1]
 		else:
-			market_id, amount = data["market_id"], data["amount"]
-		message = await self.model.market_buy_order(market_id, amount)
-		message = self.model.beautify(message)
-		message = f"Market Buy Order placed:\n{message}"
+			market_id = data["market_id"]
+			amount = data["amount"]
 
-		await self.send_message(update, context, message)
+		if self.model.validate_market_id(market_id):
+			market_id = self.model.sanitize_market_id(market_id)
+		else:
+			await self.send_message("""Please enter a valid market id ("btcusdc").""")
+			return
+
+		if self.model.validate_order_amount(amount):
+			amount = self.model.sanitize_order_amount(amount)
+		else:
+			await self.send_message("Please enter a valid amount. Ex.: 123.4567")
+			return
+
+		message = await self.model.market_buy_order(market_id, amount)
+
+		message = self.model.beautify(message)
+		message = f"Market buy order successfully placed:\n{message}"
+
+		await self.send_message(message, update, context, query)
 
 	async def market_sell_order(self, update: Update, context: ContextTypes.DEFAULT_TYPE, query: CallbackQuery = None, data: Any = None):
-		if not await self.validate_request(update, context):
-			return
-		try:
-			market_id, amount = context.args[0], float(context.args[1])
-			message = await self.model.market_sell_order(market_id, amount)
-			message = self.model.beautify(message)
-			message = f"Market Sell Order placed:\n{message}"
+		if context.args:
+			market_id = context.args[0]
+			amount = context.args[1]
+		else:
+			market_id = data["market_id"]
+			amount = data["amount"]
 
-			await self.send_message(update, context, message)
-		except Exception as e:
-			await self.send_message("Usage: /marketSellOrder <marketId> <amount> <price>")
-			raise e
+		if self.model.validate_market_id(market_id):
+			market_id = self.model.sanitize_market_id(market_id)
+		else:
+			await self.send_message("""Please enter a valid market id ("btcusdc").""")
+			return
+
+		if self.model.validate_order_amount(amount):
+			amount = self.model.sanitize_order_amount(amount)
+		else:
+			await self.send_message("Please enter a valid amount. Ex.: 123.4567")
+			return
+
+		message = await self.model.market_sell_order(market_id, amount)
+
+		message = self.model.beautify(message)
+		message = f"Market sell order successfully placed:\n{message}"
+
+		await self.send_message(message, update, context, query)
 
 	async def limit_buy_order(self, update: Update, context: ContextTypes.DEFAULT_TYPE, query: CallbackQuery = None, data: Any = None):
-		if not await self.validate_request(update, context):
-			return
-		try:
-			market_id, amount, price = context.args[0], float(context.args[1]), float(context.args[2])
-			message = await self.model.limit_buy_order(market_id, amount, price)
-			message = self.model.beautify(message)
-			message = f"Limit Buy Order placed:\n{message}"
+		if context.args:
+			market_id = context.args[0]
+			amount = context.args[1]
+			price = context.args[2]
+		else:
+			market_id = data["market_id"]
+			amount = data["amount"]
+			price = data["price"]
 
-			await self.send_message(update, context, message)
-		except Exception as e:
-			await self.send_message("Usage: /limitBuyOrder <marketId> <amount> <price>")
-			raise e
+		if self.model.validate_market_id(market_id):
+			market_id = self.model.sanitize_market_id(market_id)
+		else:
+			await self.send_message("""Please enter a valid market id ("btcusdc").""")
+			return
+
+		if self.model.validate_order_amount(amount):
+			amount = self.model.sanitize_order_amount(amount)
+		else:
+			await self.send_message("Please enter a valid amount. Ex.: 123.4567")
+			return
+
+		if self.model.validate_order_price(price):
+			price = self.model.sanitize_order_price(price)
+		else:
+			await self.send_message("Please enter a valid price. Ex.: 123.4567")
+			return
+
+		message = await self.model.limit_buy_order(market_id, amount, price)
+
+		message = self.model.beautify(message)
+		message = f"Limit buy order successfully placed:\n{message}"
+
+		await self.send_message(message, update, context, query)
 
 	async def limit_sell_order(self, update: Update, context: ContextTypes.DEFAULT_TYPE, query: CallbackQuery = None, data: Any = None):
-		if not await self.validate_request(update, context):
-			return
-		try:
-			market_id, amount, price = context.args[0], float(context.args[1]), float(context.args[2])
-			message = await self.model.limit_sell_order(market_id, amount, price)
-			message = self.model.beautify(message)
-			message = f"Limit Sell Order placed:\n{message}"
+		if context.args:
+			market_id = context.args[0]
+			amount = context.args[1]
+			price = context.args[2]
+		else:
+			market_id = data["market_id"]
+			amount = data["amount"]
+			price = data["price"]
 
-			await self.send_message(update, context, message)
-		except Exception as e:
-			await self.send_message("Usage: /limitSellOrder <marketId> <amount> <price>")
-			raise e
+		if self.model.validate_market_id(market_id):
+			market_id = self.model.sanitize_market_id(market_id)
+		else:
+			await self.send_message("""Please enter a valid market id ("btcusdc").""")
+			return
+
+		if self.model.validate_order_amount(amount):
+			amount = self.model.sanitize_order_amount(amount)
+		else:
+			await self.send_message("Please enter a valid amount. Ex.: 123.4567")
+			return
+
+		if self.model.validate_order_price(price):
+			price = self.model.sanitize_order_price(price)
+		else:
+			await self.send_message("Please enter a valid price. Ex.: 123.4567")
+			return
+
+		message = await self.model.limit_sell_order(market_id, amount, price)
+
+		message = self.model.beautify(message)
+		message = f"Limit sell order successfully placed:\n{message}"
+
+		await self.send_message(message, update, context, query)
 
 	async def place_order(self, update: Update, context: ContextTypes.DEFAULT_TYPE, query: CallbackQuery = None, data: Any = None):
-		if not await self.validate_request(update, context):
-			return
-
-		order_type, order_side, market_id, amount, price = (None, None, None, None, None)
-
-		if data:
-			if len(data.values()) == 4:
-				order_type, order_side, market_id, amount = data.values()
-			elif len(data.values()) == 5:
-				order_type, order_side, market_id, amount, price = data.values()
+		if context.args:
+			order_type = context.args[0]
+			order_side = context.args[1]
+			market_id = context.args[2]
+			amount = context.args[3]
+			price = context.args.get(4, None)
 		else:
-			arguments = context.args
-			if len(arguments) == 4:
-				order_type, order_side, market_id, amount = arguments[0], arguments[1], arguments[2], arguments[3]
-			elif len(arguments) == 5:
-				order_type, order_side, market_id, amount, price = arguments[0], arguments[1], arguments[2], arguments[3], arguments[4]
-			else:
-				message = """Unrecognized command. Usage:\n\n/place <limit/market> <buy/sell> <marketId> <amount> <price>"""
+			order_type = data["order_type"]
+			order_side = data["order_side"]
+			market_id = data["market_id"]
+			amount = data["amount"]
+			price = data.get("price", None)
 
-				await self.send_message(update, context, message)
-
-				return
-
-		# noinspection PyTypeChecker
-		order_type: OrderType = str(order_type).lower()
-		# noinspection PyTypeChecker
-		order_side: OrderSide = str(order_side).lower()
-
-		if order_type not in ["limit", "market"]:
-			try:
-				await self.send_message("""Invalid order type. Allowed values are: limit/market""")
-			# await self.send_message(update, context, message)
-			except Exception as e:
-				raise e
-
-		if order_side not in ["buy", "sell"]:
-			message = """Invalid order side. Allowed values are: buy/sell"""
-
-			await self.send_message(update, context, message)
-
+		if self.model.validate_order_type(order_type):
+			order_type = self.model.sanitize_order_type(order_type)
+		else:
+			await self.send_message("""Please enter a valid order type ("market" or "limit").""")
 			return
 
-		try:
-			amount = float(amount)
-		except ValueError:
-			message = """Invalid amount. Ex.: 123.45"""
-
-			await self.send_message(update, context, message)
-
+		if self.model.validate_order_side(order_side):
+			order_side = self.model.sanitize_order_side(order_side)
+		else:
+			await self.send_message("""Please enter a valid order side ("buy" or "sell").""")
 			return
 
-		try:
-			if price is not None:
-				price = float(price)
-		except ValueError:
-			message = """Invalid price. Ex.: 123.45"""
-			await self.send_message(update, context, message)
-
+		if self.model.validate_order_amount(amount):
+			amount = self.model.sanitize_order_amount(amount)
+		else:
+			await self.send_message("Please enter a valid amount. Ex.: 123.4567")
 			return
 
-		message = await self.model.place_order(market_id, order_type, order_side, amount, price)
+		if self.model.validate_order_price(price):
+			price = self.model.sanitize_order_price(price)
+		else:
+			await self.send_message("Please enter a valid price. Ex.: 123.4567")
+			return
+
+		message = await self.model.place_order(order_type, order_side, market_id, amount, price)
+
 		message = self.model.beautify(message)
-		message = f"Order placed:\n\n{message}"
+		message = f"Order successfully placed:\n{message}"
 
-		await self.send_message(update, context, message)
+		await self.send_message(message, update, context, query)
 
 	# noinspection PyMethodMayBeStatic,PyUnusedLocal
 	async def send_message(self, message: str, update: Update = None, context: ContextTypes.DEFAULT_TYPE = None, query: CallbackQuery = None, parse_mode: str = "Markdown", reply_markup = None):
-		formatted = str(message)
+		formatted = message
 		max_length = 4096
 
-		def get_chat_id(update):
-			if update.message:
-				return update.message.chat_id
-			elif update.callback_query:
-				return update.callback_query.message.chat_id
-			else:
-				return None
-
-		def get_reply_method(update: Any = None):
+		# noinspection PyUnusedLocal
+		def get_chat_id(update: Update, context: ContextTypes.DEFAULT_TYPE, query: CallbackQuery):
 			if update:
 				if update.message:
-					return update.message.reply_text
+					return update.message.chat_id
 				elif update.callback_query:
-					# Another possible option to investigate: query.message.reply_text
+					return update.callback_query.message.chat_id
 
-					async def send_message(message: str):
-						await context.bot.send_message(get_chat_id(update), message)
+			return TELEGRAM_CHANNEL_ID
 
-					return send_message
+		def get_reply_method(update: Update, context: ContextTypes.DEFAULT_TYPE, query: CallbackQuery):
 
-		reply_method = get_reply_method(update)
+			async def query_send(message: str):
+				return query.message.reply_text(message, parse_mode="Markdown")
+
+			async def update_send(message: str):
+				return update.message.reply_text(message, parse_mode="Markdown")
+
+			async def context_send(message: str):
+				return await context.bot.send_message(get_chat_id(update, context, query), message, parse_mode="Markdown")
+
+			if query and query.message:
+				return query_send
+			elif update and update.message:
+				return update_send
+
+			return context_send
+
+		reply_method = get_reply_method(update, context, query)
 
 		if len(formatted) <= max_length:
 			await reply_method(formatted)
@@ -614,10 +679,14 @@ class Model(object):
 		return float(target)
 
 	def validate_token_id(self, target):
-		return True
+		regex = re.compile(r'^[A-Z]{2,5}$', re.IGNORECASE)
+
+		return regex.match(target)
 
 	def validate_market_id(self, target):
-		return True
+		regex = re.compile(r'^([A-Z]{2,5})(/)?([A-Z]{2,5})$', re.IGNORECASE)
+
+		return regex.match(target)
 
 	def validate_order_type(self, target):
 		if self.sanitize_order_type(target) in ["limit", "market"]:
@@ -632,25 +701,30 @@ class Model(object):
 		return False
 
 	def validate_order_amount(self, target):
-		return True
+		regex = re.compile(r'^\d+(\.\d+)?$')
+
+		return regex.match(target)
 
 	def validate_order_price(self, target):
-		return True
+		regex = re.compile(r'^\d+(\.\d+)?$')
+
+		return regex.match(target)
 
 	async def get_balance(self, token_id: str):
 		balances = await self.get_balances()
-		balance = balances.get("total", {}).get(token_id.upper(), 0)
+		balance = balances.get(token_id)
 
-		return {token_id.upper(): balance}
+		return balance
 
-	async def get_balances(self):
+	async def get_balances(self) -> Dict[str, Any]:
 		balances = exchange.fetch_balance()
 
-		non_zero_balances = {k: v for k, v in balances.get("total", {}).items() if v > 0}
+		non_zero_balances_keys = {key for key, value in balances.get("total", {}).items() if value > 0}
+		non_zero_balances = {key: balances[key] for key in non_zero_balances_keys}
 
 		sorted_balances = OrderedDict(sorted(non_zero_balances.items(), key=lambda x: x[1], reverse=True))
 
-		return {"total": sorted_balances}
+		return sorted_balances
 
 	async def get_open_orders(self, market_id: str):
 		return exchange.fetch_open_orders(market_id)
@@ -667,15 +741,20 @@ class Model(object):
 	async def limit_sell_order(self, market_id: str, amount: float, price: float):
 		return exchange.create_order(market_id, "limit", "sell", amount, price)
 
-	async def place_order(self, market: str, order_type: OrderType, order_side: OrderSide, amount: float, price: float = None):
-		return exchange.create_order(market, order_type, order_side, amount, price)
+	async def place_order(self, market: str, order_type: OrderType, order_side: OrderSide, amount: float, price: float = None, stop_loss_price: float = None):
+		return exchange.create_order(market, order_type, order_side, amount, price, {
+			"stopLossPrice": stop_loss_price
+		})
 
 	def __getattr__(self, name):
 		attribute = getattr(exchange, name, None)
+
 		if callable(attribute):
 			async def method(*args, **kwargs):
 				return attribute(*args, **kwargs)
+
 			return method
+
 		return attribute
 
 	def beautify(self, target: Any, indent=0) -> str:
@@ -687,7 +766,6 @@ class Model(object):
 					result += "\n" + self.model.beautify(value, indent + 1)
 				else:
 					result += " " + str(value) + "\n"
-			return result
 		elif isinstance(target, list):
 			result = ""
 			for index, item in enumerate(target):
@@ -696,9 +774,18 @@ class Model(object):
 					result += "\n" + self.model.beautify(item, indent + 1)
 				else:
 					result += " " + str(item) + "\n"
-			return result
 		else:
-			return "  " * indent + str(target) + "\n"
+			result = "  " * indent + str(target) + "\n"
+
+		if str(result).strip() == "":
+			if isinstance(target, dict):
+				result = "{}"
+			elif isinstance(target, list):
+				result = "[]"
+			else:
+				result = "<empty>"
+
+		return result
 
 	def handle_magic_method_output(self, target):
 		return self.beautify(target)
@@ -720,35 +807,7 @@ class Model(object):
 
 
 async def test():
-	pass
-	# print(await model.get_balances())
-	# print(await model.get_balance("BTC"))
-	# print(await model.get_open_orders("BTCUSDT"))
-	# print(await model.market_buy_order("BTCUSDT", 0.00009))
-	# print(await model.market_sell_order("BTCUSDT", 0.00009))
-	# print(await model.limit_buy_order("BTCUSDT", 0.001, 20000))
-	# print(await model.limit_sell_order("BTCUSDT", 0.00009, 99999))
-	# print(await model.place_order("BTCUSDT", "market", "buy", 0.0001))
-	# print(await model.place_order("BTCUSDT", "limit", "sell", 0.00009, 99999))
-
-	# print(await model.fetch_markets())
-	# print(await model.fetch_balance())
-	# print(await model.fetch_ticker("BTCUSDT"))
-
-	# await self.place_order(None, None, {
-	# 	"type": "market",
-	# 	"side": "buy",
-	# 	"market_id": "BTCUSDT",
-	# 	"amount": 0.00009
-	# })
-
-	# await self.place_order(None, None, {
-	# 	"type": "limit",
-	# 	"side": "sell",
-	# 	"market_id": "BTCUSDT",
-	# 	"amount": 0.00009,
-	# 	"price": 99999
-	# })
+	IntegrationTests.instance().run()
 
 
 def main():
@@ -756,4 +815,5 @@ def main():
 
 
 if __name__ == "__main__":
+	test()
 	main()

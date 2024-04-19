@@ -1,3 +1,4 @@
+from singleton.singleton import ThreadSafeSingleton
 from typing import Dict
 
 import json
@@ -7,6 +8,7 @@ import ccxt
 # import ccxt.async_support as ccxt
 
 
+@ThreadSafeSingleton
 class IntegrationTests:
 	def __init__(self):
 		self.use_sandbox_mode = True
@@ -51,6 +53,35 @@ class IntegrationTests:
 			# self.withdraw()
 			# self.watch_order_book()
 			# self.parse_order()
+
+			# print(await model.get_balances())
+			# print(await model.get_balance("BTC"))
+			# print(await model.get_open_orders("BTCUSDT"))
+			# print(await model.market_buy_order("BTCUSDT", 0.00009))
+			# print(await model.market_sell_order("BTCUSDT", 0.00009))
+			# print(await model.limit_buy_order("BTCUSDT", 0.001, 20000))
+			# print(await model.limit_sell_order("BTCUSDT", 0.00009, 99999))
+			# print(await model.place_order("BTCUSDT", "market", "buy", 0.0001))
+			# print(await model.place_order("BTCUSDT", "limit", "sell", 0.00009, 99999))
+
+			# print(await model.fetch_markets())
+			# print(await model.fetch_balance())
+			# print(await model.fetch_ticker("BTCUSDT"))
+
+			# await self.place_order(None, None, {
+			# 	"type": "market",
+			# 	"side": "buy",
+			# 	"market_id": "BTCUSDT",
+			# 	"amount": 0.00009
+			# })
+
+			# await self.place_order(None, None, {
+			# 	"type": "limit",
+			# 	"side": "sell",
+			# 	"market_id": "BTCUSDT",
+			# 	"amount": 0.00009,
+			# 	"price": 99999
+			# })
 
 			print("end")
 		finally:
