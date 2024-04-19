@@ -60,7 +60,7 @@ def sync_handle_exceptions(method):
 		except Exception as exception:
 			try:
 				asyncio.get_event_loop().run_until_complete(
-					telegram.send_message(
+					Telegram.instance().send_message(
 						str(exception)
 					)
 				)
@@ -79,7 +79,7 @@ def async_handle_exceptions(method):
 			return await method(*args, **kwargs)
 		except Exception as exception:
 			try:
-				await telegram.send_message(str(exception))
+				await Telegram.instance().send_message(str(exception))
 			except Exception as telegram_exception:
 				logging.debug(telegram_exception)
 
@@ -670,6 +670,7 @@ class Model:
 
 
 async def test():
+	pass
 	# print(await model.get_balances())
 	# print(await model.get_balance('BTC'))
 	# print(await model.get_open_orders('BTCUSDT'))
