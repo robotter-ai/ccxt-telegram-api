@@ -6,6 +6,7 @@ from collections import OrderedDict
 import jsonpickle
 import logging
 import os
+import requests
 import textwrap
 import traceback
 from dotmap import DotMap
@@ -111,24 +112,24 @@ class Telegram(object):
 
 	# noinspection PyMethodMayBeStatic
 	def initialize(self):
-		application = Application.builder().token(TELEGRAM_TOKEN).build()
+		self.application = Application.builder().token(TELEGRAM_TOKEN).build()
 
-		application.add_handler(CommandHandler("start", self.start))
-		application.add_handler(CommandHandler("help", self.help))
-		application.add_handler(CommandHandler("balance", self.get_balance))
-		application.add_handler(CommandHandler("balances", self.get_balances))
-		application.add_handler(CommandHandler("openOrders", self.get_open_orders))
-		application.add_handler(CommandHandler("marketBuyOrder", self.market_buy_order))
-		application.add_handler(CommandHandler("marketSellOrder", self.market_sell_order))
-		application.add_handler(CommandHandler("limitBuyOrder", self.limit_buy_order))
-		application.add_handler(CommandHandler("limitSellOrder", self.limit_sell_order))
-		application.add_handler(CommandHandler("placeOrder", self.place_order))
+		self.application.add_handler(CommandHandler("start", self.start))
+		self.application.add_handler(CommandHandler("help", self.help))
+		self.application.add_handler(CommandHandler("balance", self.get_balance))
+		self.application.add_handler(CommandHandler("balances", self.get_balances))
+		self.application.add_handler(CommandHandler("openOrders", self.get_open_orders))
+		self.application.add_handler(CommandHandler("marketBuyOrder", self.market_buy_order))
+		self.application.add_handler(CommandHandler("marketSellOrder", self.market_sell_order))
+		self.application.add_handler(CommandHandler("limitBuyOrder", self.limit_buy_order))
+		self.application.add_handler(CommandHandler("limitSellOrder", self.limit_sell_order))
+		self.application.add_handler(CommandHandler("placeOrder", self.place_order))
 
-		application.add_handler(CallbackQueryHandler(self.button_handler))
-		application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, self.text_handler))
-		application.add_handler(MessageHandler(filters.COMMAND, self.magic_command_handler))
+		self.application.add_handler(CallbackQueryHandler(self.button_handler))
+		self.application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, self.text_handler))
+		self.application.add_handler(MessageHandler(filters.COMMAND, self.magic_command_handler))
 
-		application.run_polling()
+		self.application.run_polling()
 
 	# noinspection PyMethodMayBeStatic
 	def is_admin(self, username) -> bool:
@@ -328,9 +329,9 @@ class Telegram(object):
 					
 					*/balances*
 					
-					*/balance* `<marketId>`
+					*/balance* `<tokenId>`
 					
-					*/openOrders* `<tokenId>`
+					*/openOrders* `<marketId>`
 					
 					*/placeMarketBuyOrder* `<marketId> <amount>`
 					
@@ -347,6 +348,9 @@ class Telegram(object):
 								Feel free to explore and trade safely!* 🚀
 				"""
 			),
+			update,
+			context,
+			query,
 			reply_markup=reply_markup
 		)
 
@@ -395,17 +399,20 @@ class Telegram(object):
 						*/fetchTicker* `btcusdc`
 						*/fetchTicker* `symbol=btcusdc`
 					
-					*Type /start for the menu.
+					*Type /start for the menu.*
 					*Feel free to explore and trade safely!* 🚀
 				"""
-			)
+			),
+			update,
+			context,
+			query
 		)
 
 	async def get_balance(self, update: Update, context: ContextTypes.DEFAULT_TYPE, query: CallbackQuery = None, data: Any = None):
 		if not await self.validate_request(update, context):
 			return
 
-		value = context.args if context.args else data
+		value = context.args[0] if context.args else data
 
 		if self.model.validate_token_id(value):
 			token_id = self.model.sanitize_token_id(value)
@@ -429,7 +436,7 @@ class Telegram(object):
 		if not await self.validate_request(update, context):
 			return
 
-		value = context.args if context.args else data
+		value = context.args[0] if context.args else data
 
 		if self.model.validate_market_id(value):
 			market_id = self.model.sanitize_market_id(value)
@@ -627,25 +634,37 @@ class Telegram(object):
 
 			return TELEGRAM_CHANNEL_ID
 
-		def get_reply_method(update: Update, context: ContextTypes.DEFAULT_TYPE, query: CallbackQuery):
-
+		def get_reply_method(update: Update, context: ContextTypes.DEFAULT_TYPE, query: CallbackQuery, parse_mode: str = "Markdown", reply_markup: Any = None):
 			async def query_send(message: str):
-				return query.message.reply_text(message, parse_mode="Markdown")
+				return await query.message.reply_text(message, parse_mode=parse_mode, reply_markup=reply_markup)
 
 			async def update_send(message: str):
-				return update.message.reply_text(message, parse_mode="Markdown")
+				return await update.message.reply_text(message, parse_mode=parse_mode, reply_markup=reply_markup)
 
 			async def context_send(message: str):
-				return await context.bot.send_message(get_chat_id(update, context, query), message, parse_mode="Markdown")
+				return await context.bot.send_message(get_chat_id(update, context, query), message, parse_mode=parse_mode, reply_markup=reply_markup)
+
+			async def fallback_send(message: str):
+				return requests.get(
+					url=f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage",
+					params={
+						"text": message,
+						"chat_id": TELEGRAM_CHANNEL_ID,
+						"parse_mode": parse_mode,
+						"reply_markup": reply_markup,
+					}
+				)
 
 			if query and query.message:
 				return query_send
 			elif update and update.message:
 				return update_send
+			elif context and context.bot:
+				return context_send
 
-			return context_send
+			return fallback_send
 
-		reply_method = get_reply_method(update, context, query)
+		reply_method = get_reply_method(update, context, query, parse_mode, reply_markup)
 
 		if len(formatted) <= max_length:
 			await reply_method(formatted)
@@ -722,7 +741,10 @@ class Model(object):
 		non_zero_balances_keys = {key for key, value in balances.get("total", {}).items() if value > 0}
 		non_zero_balances = {key: balances[key] for key in non_zero_balances_keys}
 
-		sorted_balances = OrderedDict(sorted(non_zero_balances.items(), key=lambda x: x[1], reverse=True))
+		sorted_balances = OrderedDict(sorted(
+			non_zero_balances.items(),
+			key=lambda x: (-x[1]['total'], x[0].lower())
+		))
 
 		return sorted_balances
 
@@ -806,7 +828,7 @@ class Model(object):
 			return target
 
 
-async def test():
+def test():
 	IntegrationTests.instance().run()
 
 
