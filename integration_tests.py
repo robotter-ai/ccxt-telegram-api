@@ -73,7 +73,7 @@ class IntegrationTests:
 		self.community_exchange.secret = os.getenv('API_SECRET')
 		if self.use_sandbox_mode:
 			self.community_exchange.set_sandbox_mode(True)
-		self.community_exchange.options['subaccountId'] = self.sub_account_id
+		# self.community_exchange.options['subaccountId'] = self.sub_account_id
 
 	def create_pro_exchange(self):
 		self.pro_exchange = getattr(ccxt.pro, self.exchange_id)()
@@ -81,7 +81,7 @@ class IntegrationTests:
 		self.pro_exchange.secret = os.getenv('API_SECRET')
 		if self.use_sandbox_mode:
 			self.community_exchange.set_sandbox_mode(True)
-		self.pro_exchange.options['subaccountId'] = self.sub_account_id
+		# self.pro_exchange.options['subaccountId'] = self.sub_account_id
 
 	def load_markets(self):
 		response = self.community_exchange.load_markets()
@@ -124,7 +124,6 @@ class IntegrationTests:
 			self.market_symbols[0], 'limit', 'buy', 0.1, 125.0,
 			{
 				'requestId': 1,
-				'subaccountId': self.sub_account_id,
 				'selfTradePrevention': 0,
 				'postOnly': 0,
 				'timeInForce': 1,
