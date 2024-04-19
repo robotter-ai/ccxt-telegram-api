@@ -280,9 +280,9 @@ class Telegram:
 					
 					*/openOrders* `<tokenId>`
 					
-					*/marketBuyOrder* `<marketId> <amount> <price>`
+					*/marketBuyOrder* `<marketId> <amount>`
 					
-					*/marketSellOrder* `<marketId> <amount> <price>`
+					*/marketSellOrder* `<marketId> <amount>`
 					
 					*/limitBuyOrder* `<marketId> <amount> <price>`
 					
@@ -323,9 +323,9 @@ class Telegram:
 					
 					*🛒 Trading Commands:*
 						Place a market buy order:
-						*- /marketBuyOrder* `<marketId> <amount> <price>`
+						*- /marketBuyOrder* `<marketId> <amount>`
 						Place a market sell order:
-						*- /marketSellOrder* `<marketId> <amount> <price>`
+						*- /marketSellOrder* `<marketId> <amount>`
 						Place a limit buy order:
 						*- /limitBuyOrder* `<marketId> <amount> <price>`
 						Place a limit sell order:
