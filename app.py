@@ -1,23 +1,27 @@
+import asyncio
 from collections import OrderedDict
 
-import ccxt
-# import ccxt.async_support as ccxt
 import jsonpickle
 import logging
 import os
 import textwrap
 import traceback
-import asyncio
-from ccxt.base.types import OrderType, OrderSide
 from dotmap import DotMap
 from functools import wraps
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery
 from telegram.ext import Application, CommandHandler, ContextTypes, CallbackQueryHandler, filters, MessageHandler
 from typing import Any, Dict
+from singleton.singleton import ThreadSafeSingleton
 
-from integration_tests import IntegrationTests
+# noinspection PyUnresolvedReferences
+import ccxt as sync_ccxt
+# noinspection PyUnresolvedReferences
+import ccxt.async_support as async_ccxt
+from ccxt.base.types import OrderType, OrderSide
 
-logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
+ccxt = sync_ccxt
+
+logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.ERROR)
 
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_CHANNEL_ID = os.getenv("TELEGRAM_TELEGRAM_CHANNEL_ID")
@@ -35,8 +39,7 @@ EXCHANGE_SUB_ACCOUNT_ID = os.getenv("EXCHANGE_SUB_ACCOUNT_ID")
 
 UNAUTHORIZED_USER_MESSAGE = "Unauthorized user."
 
-exchange_class = getattr(ccxt, EXCHANGE_NAME)
-exchange = exchange_class({
+exchange = getattr(ccxt, EXCHANGE_NAME)({
 	"apiKey": EXCHANGE_API_KEY,
 	"secret": EXCHANGE_API_SECRET,
 	"options": {
@@ -55,7 +58,14 @@ def sync_handle_exceptions(method):
 		try:
 			return method(*args, **kwargs)
 		except Exception as exception:
-			print(exception)
+			try:
+				asyncio.get_event_loop().run_until_complete(
+					telegram.send_message(
+						str(exception)
+					)
+				)
+			except Exception as telegram_exception:
+				logging.debug(telegram_exception)
 
 			raise
 
@@ -68,7 +78,10 @@ def async_handle_exceptions(method):
 		try:
 			return await method(*args, **kwargs)
 		except Exception as exception:
-			print(f"O erro é {exception}")
+			try:
+				await telegram.send_message(str(exception))
+			except Exception as telegram_exception:
+				logging.debug(telegram_exception)
 
 			raise
 
@@ -87,10 +100,32 @@ def handle_exceptions(cls):
 
 
 @handle_exceptions
-class Telegram:
+@ThreadSafeSingleton
+class Telegram(object):
 
 	def __init__(self):
-		self.model = Model()
+		self.model = Model.instance()
+
+	# noinspection PyMethodMayBeStatic
+	def initialize(self):
+		application = Application.builder().token(TELEGRAM_TOKEN).build()
+
+		application.add_handler(CommandHandler("start", self.start))
+		application.add_handler(CommandHandler("help", self.help))
+		application.add_handler(CommandHandler("balance", self.get_balance))
+		application.add_handler(CommandHandler("balances", self.get_balances))
+		application.add_handler(CommandHandler("openOrders", self.get_open_orders))
+		application.add_handler(CommandHandler("marketBuyOrder", self.market_buy_order))
+		application.add_handler(CommandHandler("marketSellOrder", self.market_sell_order))
+		application.add_handler(CommandHandler("limitBuyOrder", self.limit_buy_order))
+		application.add_handler(CommandHandler("limitSellOrder", self.limit_sell_order))
+		application.add_handler(CommandHandler("placeOrder", self.place_order))
+
+		application.add_handler(CallbackQueryHandler(self.button_handler))
+		application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, self.text_handler))
+		application.add_handler(MessageHandler(filters.COMMAND, self.magic_command_handler))
+
+		application.run_polling()
 
 	# noinspection PyMethodMayBeStatic
 	def is_admin(self, username):
@@ -107,8 +142,8 @@ class Telegram:
 		except Exception as exception:
 			return True
 
-	# noinspection PyMethodMayBeStatic
-	async def send_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE, message: Any, _query: CallbackQuery = None):
+	# noinspection PyMethodMayBeStatic,PyUnusedLocal
+	async def send_message(self, message: Any, update: Update = None, context: ContextTypes.DEFAULT_TYPE = None, query: CallbackQuery = None):
 		formatted = str(message)
 		max_length = 4096
 
@@ -177,7 +212,7 @@ class Telegram:
 
 			return
 
-	async def handle_text_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+	async def text_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
 		user_data = context.user_data
 		text = update.message.text
 
@@ -350,7 +385,7 @@ class Telegram:
 			parse_mode="Markdown",
 		)
 
-	async def magic_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+	async def magic_command_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
 		if not await self.validate_request(update, context):
 			return
 
@@ -575,6 +610,7 @@ class Telegram:
 
 # noinspection PyMethodMayBeStatic
 @handle_exceptions
+@ThreadSafeSingleton
 class Model:
 	async def get_balance(self, token_id: str):
 		balances = await self.get_balances()
@@ -634,13 +670,6 @@ class Model:
 
 
 async def test():
-	model = Model()
-	telegram = Telegram()
-	tests = IntegrationTests()
-
-	tests.community_exchange = exchange
-	tests.run()
-
 	# print(await model.get_balances())
 	# print(await model.get_balance('BTC'))
 	# print(await model.get_open_orders('BTCUSDT'))
@@ -655,14 +684,14 @@ async def test():
 	# print(await model.fetch_balance())
 	# print(await model.fetch_ticker('BTCUSDT'))
 
-	# await telegram.place_order(None, None, {
+	# await self.place_order(None, None, {
 	# 	"type": "market",
 	# 	"side": "buy",
 	# 	"market_id": "BTCUSDT",
 	# 	"amount": 0.00009
 	# })
 
-	# await telegram.place_order(None, None, {
+	# await self.place_order(None, None, {
 	# 	"type": "limit",
 	# 	"side": "sell",
 	# 	"market_id": "BTCUSDT",
@@ -672,31 +701,8 @@ async def test():
 
 
 def main():
-	telegram = Telegram()
-
-	application = Application.builder().token(TELEGRAM_TOKEN).build()
-
-	application.add_handler(CommandHandler("start", telegram.start))
-	application.add_handler(CommandHandler("help", telegram.help))
-	application.add_handler(CommandHandler("balance", telegram.get_balance))
-	application.add_handler(CommandHandler("balances", telegram.get_balances))
-	application.add_handler(CommandHandler("openOrders", telegram.get_open_orders))
-	application.add_handler(CommandHandler("marketBuyOrder", telegram.market_buy_order))
-	application.add_handler(CommandHandler("marketSellOrder", telegram.market_sell_order))
-	application.add_handler(CommandHandler("limitBuyOrder", telegram.limit_buy_order))
-	application.add_handler(CommandHandler("limitSellOrder", telegram.limit_sell_order))
-	application.add_handler(CommandHandler("placeOrder", telegram.place_order))
-
-	application.add_handler(CallbackQueryHandler(telegram.button_handler))
-
-	application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, telegram.handle_text_message))
-	application.add_handler(MessageHandler(filters.COMMAND, telegram.magic_command))
-
-	application.run_polling()
+	Telegram.instance().initialize()
 
 
 if __name__ == "__main__":
-	import asyncio
-	asyncio.get_event_loop().run_until_complete(test())
-
 	main()

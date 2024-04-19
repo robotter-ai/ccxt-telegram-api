@@ -1,4 +1,5 @@
-dotmap
-jsonpickle
-python-telegram-bot
 ccxt
+dotmap==1.3.30
+jsonpickle==3.0.2
+python-telegram-bot==21.0.1
+singleton==0.1.0
