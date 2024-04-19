@@ -97,12 +97,15 @@ class Telegram:
 		return username in TELEGRAM_ADMIN_USERNAMES
 
 	async def validate_request(self, update: Update, _context: ContextTypes.DEFAULT_TYPE):
-		if not self.is_admin(update.message.from_user.username):
-			await update.message.reply_text(UNAUTHORIZED_USER_MESSAGE)
+		try:
+			if not self.is_admin(update.message.from_user.username):
+				await update.message.reply_text(UNAUTHORIZED_USER_MESSAGE)
 
-			return False
+				return False
 
-		return True
+			return True
+		except Exception as exception:
+			return True
 
 	# noinspection PyMethodMayBeStatic
 	async def send_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE, message: Any, _query: CallbackQuery = None):
@@ -275,7 +278,7 @@ class Telegram:
 					
 					*/balance* `<marketId>`
 					
-					*/openOrders* `<marketId>`
+					*/openOrders* `<tokenId>`
 					
 					*/marketBuyOrder* `<marketId> <amount> <price>`
 					
@@ -285,7 +288,7 @@ class Telegram:
 					
 					*/limitSellOrder* `<marketId> <amount> <price>`
 					
-					*/placeOrder* `<limit/market> <buy/sell> <maktId> <amount> <price>`
+					*/placeOrder* `<limit/market> <buy/sell> <marketId> <amount> <price>`
 					
 					
 								*Type /help to get more information.
@@ -314,7 +317,7 @@ class Telegram:
 						View all balances:
 						*- /balances*
 						View specific balance from a market:
-						*- /balance* `<marketId>`
+						*- /balance* `<tokenId>`
 						Get all open orders from a market:	
 						*- /openOrders* `<marketId>`
 					
@@ -376,7 +379,7 @@ class Telegram:
 			return
 
 		try:
-			token_id = context.args[0]
+			token_id = context.args[0] if context.args else context.user_data['balance']
 			message = await self.model.get_balance(token_id)
 			message = self.beautify(message)
 
@@ -386,7 +389,7 @@ class Telegram:
 			raise e
 
 	async def get_balances(self, update: Update, context: ContextTypes.DEFAULT_TYPE, query: CallbackQuery = None):
-		if not self.validate_request(update, context):
+		if not await self.validate_request(update, context):
 			return
 
 		message = await self.model.get_balances()
@@ -398,13 +401,16 @@ class Telegram:
 		if not await self.validate_request(update, context):
 			return
 		try:
-			market_id = context.args[0]
+			market_id = context.args[0] if context.args else context.user_data['open_orders']
 			message = await self.model.get_open_orders(market_id)
-			message = self.beautify(message)
+			if not len(message):
+				message = "No orders"
+			else:
+				message = self.beautify(message)
 
 			await self.send_message(update, context, message)
 		except Exception as e:
-			await update.message.reply_text("Usage: /OpenOrders <marketId>")
+			await update.message.reply_text("Usage: /openOrders <marketId>")
 			raise e
 
 	async def market_buy_order(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -465,7 +471,7 @@ class Telegram:
 			raise e
 
 	async def place_order(self, update: Update, context: ContextTypes.DEFAULT_TYPE, order: Dict[str, Any] = None):
-		if not self.validate_request(update, context):
+		if not await self.validate_request(update, context):
 			return
 
 		order_type, order_side, market_id, amount, price = (None, None, None, None, None)
@@ -570,11 +576,11 @@ class Telegram:
 # noinspection PyMethodMayBeStatic
 @handle_exceptions
 class Model:
-	async def get_balance(self, market_id: str):
+	async def get_balance(self, token_id: str):
 		balances = await self.get_balances()
-		balance = balances.get('total', {}).get(market_id, 0)
+		balance = balances.get('total', {}).get(token_id.upper(), 0)
 
-		return {market_id: balance}
+		return {token_id.upper(): balance}
 
 	async def get_balances(self):
 		balances = exchange.fetch_balance()

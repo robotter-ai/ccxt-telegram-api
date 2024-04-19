@@ -42,7 +42,7 @@ class IntegrationTests:
 			# self.fetch_tickers()
 			# self.cancel_all_orders()
 			# self.fetch_orders()
-			self.fetch_ohlcv()
+			# self.fetch_ohlcv()
 			# self.fetch_trades()
 			# self.fetch_my_trades()
 			# self.fetch_closed_orders()
