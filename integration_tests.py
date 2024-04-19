@@ -13,7 +13,7 @@ class IntegrationTests:
 		self.market_symbols = ['tsoltusdc', 'tbtctusdc']
 		self.market_ids = ['200047', '200005']
 		self.client_order_id = 1712612349538
-		self.exchange_order_id = '5328155590'
+		self.exchange_order_id = '5341481585'
 		self.community_exchange = None
 		self.pro_exchange = None
 
@@ -42,7 +42,7 @@ class IntegrationTests:
 			# self.fetch_tickers()
 			# self.cancel_all_orders()
 			# self.fetch_orders()
-			# self.fetch_ohlcv()
+			self.fetch_ohlcv()
 			# self.fetch_trades()
 			# self.fetch_my_trades()
 			# self.fetch_closed_orders()
@@ -108,7 +108,7 @@ class IntegrationTests:
 		self.log(response)
 
 	def fetch_ohlcv(self):
-		response = self.community_exchange.fetch_ohlcv()
+		response = self.community_exchange.fetch_ohlcv(self.market_symbols[0])
 		self.log(response)
 
 	def fetch_trades(self):
@@ -138,38 +138,31 @@ class IntegrationTests:
 
 	def cancel_all_orders(self):
 		response = self.community_exchange.cancel_all_orders(self.market_symbols[0], {
-			'subaccountId': self.sub_account_id,
 			'requestId': 1,
 		})
 		self.log(response)
 
 	def fetch_raw_order(self):
 		response = self.community_exchange.fetch_raw_order(self.exchange_order_id, self.market_symbols[0], {
-			'subAccountId': self.sub_account_id
 		})
 		self.log(response)
 
 	def fetch_order(self):
 		response = self.community_exchange.fetch_order(self.exchange_order_id, self.market_symbols[0], {
-			'subAccountId': self.sub_account_id
 		})
 		self.log(response)
 
 	def fetch_orders(self):
 		response = self.community_exchange.fetch_orders(self.market_symbols[0], None, None, {
-			'subAccountId': self.sub_account_id
 		})
 		self.log(response)
 
 	def fetch_orders_all_markets(self):
-		response = self.community_exchange.fetch_orders_all_markets(None, None, {
-			'subAccountId': self.sub_account_id
-		})
+		response = self.community_exchange.fetch_orders_all_markets(None, None)
 		self.log(response)
 
 	def fetch_open_orders(self):
 		response = self.community_exchange.fetch_open_orders(self.market_symbols[0], None, None, {
-			'subAccountId': self.sub_account_id
 		})
 		self.log(response)
 
