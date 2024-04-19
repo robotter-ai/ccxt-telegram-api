@@ -6,6 +6,7 @@ import logging
 import os
 import textwrap
 import traceback
+import asyncio
 from ccxt.base.types import OrderType, OrderSide
 from dotmap import DotMap
 from functools import wraps
@@ -44,25 +45,45 @@ exchange = exchange_class({
 exchange.set_sandbox_mode(True)
 
 
-def handle_exceptions(exception_type=Exception, handler=None):
-	if handler is None:
-		handler = lambda e: print(f"An error occurred: {e}")
+def sync_handle_exceptions(method):
 
-	def class_decorator(cls):
-		for name, method in cls.__dict__.items():
-			if callable(method):
-				@wraps(method)
-				def method_wrapper(*args, method=method, **kwargs):
-					try:
-						return method(*args, **kwargs)
-					except exception_type as e:
-						handler(e)
-				setattr(cls, name, method_wrapper)
-		return cls
-	return class_decorator
+	@wraps(method)
+	def wrapper(*args, **kwargs):
+		try:
+			return method(*args, **kwargs)
+		except Exception as exception:
+			print(exception)
+
+			raise
+
+	return wrapper
 
 
-@handle_exceptions()
+def async_handle_exceptions(method):
+	@wraps(method)
+	async def wrapper(*args, **kwargs):
+		try:
+			return await method(*args, **kwargs)
+		except Exception as exception:
+			print(f"O erro é {exception}")
+
+			raise
+
+	return wrapper
+
+
+def handle_exceptions(cls):
+	for attr, method in cls.__dict__.items():
+		if callable(method):
+			if asyncio.iscoroutinefunction(method):
+				setattr(cls, attr, async_handle_exceptions(method))
+			else:
+				setattr(cls, attr, sync_handle_exceptions(method))
+
+	return cls
+
+
+@handle_exceptions
 class Telegram:
 
 	def __init__(self):
@@ -193,25 +214,31 @@ class Telegram:
 						user_data['place_order_step'] = 'confirm'
 						formatted = self.beautify(user_data["place_order"])
 						await update.message.reply_text(f"Review your order and type 'confirm' to place it or 'cancel' to abort.\n\n{formatted}")
-				except ValueError:
+				except Exception as e:
 					await update.message.reply_text("Please enter a valid amount. Ex.: 123.4567")
+					raise e
 			elif user_data['place_order_step'] == 'ask_price':
 				try:
 					user_data['place_order']['price'] = float(text)
 					user_data['place_order_step'] = 'confirm'
 					formatted = self.beautify(user_data["place_order"])
 					await update.message.reply_text(f"Review your order and type 'confirm' to place it or 'cancel' to abort.\n\n{formatted}")
-				except ValueError:
+				except Exception as e:
 					await update.message.reply_text("Please enter a valid price. Ex.: 123.4567")
+					raise e
 			elif user_data['place_order_step'] == 'confirm':
-				if text.lower() == 'confirm':
-					await self.place_order(update, context, user_data['place_order'])
-					user_data.clear()
-				elif text.lower() == 'cancel':
-					user_data.clear()
-					await update.message.reply_text("Order canceled.")
-				else:
-					await update.message.reply_text("Please type 'confirm' to place the order or 'cancel' to abort.")
+				try:
+					if text.lower() == 'confirm':
+						await self.place_order(update, context, user_data['place_order'])
+						user_data.clear()
+					elif text.lower() == 'cancel':
+						user_data.clear()
+						await update.message.reply_text("Order canceled.")
+					else:
+						await update.message.reply_text("Please type 'confirm' to place the order or 'cancel' to abort.")
+				except Exception as e:
+					await update.message.reply_text(f"{e}")
+					raise e
 		else:
 			# Handle other text messages that are not part of the order process
 			await update.message.reply_text("Please use /start for the menu.")
@@ -235,23 +262,31 @@ class Telegram:
 		await update.message.reply_text(
 			textwrap.dedent(
 				f"""
-					**🤖 Welcome to {str(EXCHANGE_NAME).upper()} Trading Bot! 📈**
+					*🤖 Welcome to {str(EXCHANGE_NAME).upper()} Trading Bot! 📈*
 					
-					Available commands:
+										*Available commands:*
 					
-					`/help`
-					`/balances`
-					`/balance <marketId>`
-					`/openOrders <marketId>`
-					`/marketBuyOrder <marketId> <amount> <price>`
-					`/marketSellOrder <marketId> <amount> <price>`
-					`/limitBuyOrder <marketId> <amount> <price> <stopLossPrice>`
-					`/limitSellOrder <marketId> <amount> <price> <stopLossPrice>`
-					`/placeOrder <limit/market> <buy/sell> <marketId> <amount> <price> [<stopLossPrice>]`
-					`/<anyCCXTMethod> <arg1Value> <arg2Name>=<arg2Value>`
+					*/help*
 					
-					Type /help to get more information.
-					Feel free to explore and trade safely! 🚀
+					*/balances*
+					
+					*/balance* `<marketId>`
+					
+					*/openOrders* `<marketId>`
+					
+					*/marketBuyOrder* `<marketId> <amount> <price>`
+					
+					*/marketSellOrder* `<marketId> <amount> <price>`
+					
+					*/limitBuyOrder* `<marketId> <amount> <price>`
+					
+					*/limitSellOrder* `<marketId> <amount> <price>`
+					
+					*/placeOrder* `<limit/market> <buy/sell> <maktId> <amount> <price>`
+					
+					
+								*Type /help to get more information.
+								Feel free to explore and trade safely!* 🚀
 				"""
 			),
 			parse_mode="Markdown",
@@ -261,58 +296,49 @@ class Telegram:
 	async def help(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
 		if not await self.validate_request(update, context):
 			return
-
 		await update.message.reply_text(
 			textwrap.dedent(
 				f"""
-					**🤖 Welcome to {str(EXCHANGE_NAME).upper()} Trading Bot! 📈**
+					*🤖 Welcome to {str(EXCHANGE_NAME).upper()} Trading Bot! 📈*
 					
 					Here are the available commands:
 					
 					*ℹ️ Util Commands:*
-					
-						- `/help`
-							(Show this information)
+						Show this information:
+						*- /help*
 					
 					*🔍 Query Commands:*
-					
-						- `/balances`
-							(View all balances)
-						
-						- `/balance <marketId>`
-							(View specific balance from a market)
-						
-						- `/openOrders <marketId>`
-							(Get all open orders from a market)
+						View all balances:
+						*- /balances*
+						View specific balance from a market:
+						*- /balance* `<marketId>`
+						Get all open orders from a market:	
+						*- /openOrders* `<marketId>`
 					
 					*🛒 Trading Commands:*
-					
-						- `/marketBuyOrder <marketId> <amount> <price>`
-							(Place a market buy order)
-						
-						- `/marketSellOrder <marketId> <amount> <price>`
-							(Place a market sell order)
-						
-						- `/limitBuyOrder <marketId> <amount> <price> <stopLossPrice>`
-							(Place a limit buy order)
-						
-						- `/limitSellOrder <marketId> <amount> <price> <stopLossPrice>`
-							(Place a limit sell order)
-						
-						- `/placeOrder <limit/market> <buy/sell> <marketId> <amount> <price> [<stopLossPrice>]`
-							(Place a custom order)
+						Place a market buy order:
+						*- /marketBuyOrder* `<marketId> <amount> <price>`
+						Place a market sell order:
+						*- /marketSellOrder* `<marketId> <amount> <price>`
+						Place a limit buy order:
+						*- /limitBuyOrder* `<marketId> <amount> <price>`
+						Place a limit sell order:
+						*- /limitSellOrder* `<marketId> <amount> <price>`
+						Place a custom order:
+						*- /placeOrder* `<limit/market> <buy/sell> <marketId> <amount> <price>`
 					
 					*🔧 Advanced Commands:*
-					
 						With this special command you can theoretically try any available CCXT command. Some examples are:
 						
-							/fetchTicker BTCUSDT
-							/fetchTicker symbol=BTCUSDT
+							*/fetchTicker* `BTCUSDT`
+							*/fetchTicker* `symbol=BTCUSDT`
 						
-						- `/<anyCCXTMethod> <arg1Value> <arg2Name>=<arg2Value>`
-							(Theoretically any CCXT command)
+						Magic Trick:
+						*- /anyCCXTMethod* `<arg1Value> <arg2Name>=<arg2Value>`
+							(Where <anyCCXTMethod> Theoretically can be any CCXT command)
+							
 					
-					Feel free to explore and trade safely! 🚀
+					*Feel free to explore and trade safely!* 🚀
 				"""
 			),
 			parse_mode="Markdown",
@@ -343,14 +369,18 @@ class Telegram:
 		await self.send_message(update, context, message)
 
 	async def get_balance(self, update: Update, context: ContextTypes.DEFAULT_TYPE, query: CallbackQuery = None):
-		if not self.validate_request(update, context):
+		if not await self.validate_request(update, context):
 			return
 
-		token_id = context.args[0] if context.args else context.user_data['balance']
-		message = await self.model.get_balance(token_id)
-		message = self.beautify(message)
+		try:
+			token_id = context.args[0]
+			message = await self.model.get_balance(token_id)
+			message = self.beautify(message)
 
-		await self.send_message(update, context, message, query)
+			await self.send_message(update, context, message, query)
+		except Exception as e:
+			await update.message.reply_text("Usage: /balance <marketId>")
+			raise e
 
 	async def get_balances(self, update: Update, context: ContextTypes.DEFAULT_TYPE, query: CallbackQuery = None):
 		if not self.validate_request(update, context):
@@ -362,15 +392,17 @@ class Telegram:
 		await self.send_message(update, context, message, query)
 
 	async def get_open_orders(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-		if not self.validate_request(update, context):
+		if not await self.validate_request(update, context):
 			return
+		try:
+			market_id = context.args[0]
+			message = await self.model.get_open_orders(market_id)
+			message = self.beautify(message)
 
-		market_id = context.args[0] if context.args else context.user_data['open_orders']
-
-		message = await self.model.get_open_orders(market_id)
-		message = self.beautify(message)
-
-		await self.send_message(update, context, message)
+			await self.send_message(update, context, message)
+		except Exception as e:
+			await update.message.reply_text("Usage: /OpenOrders <marketId>")
+			raise e
 
 	async def market_buy_order(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
 		if not await self.validate_request(update, context):
@@ -383,8 +415,9 @@ class Telegram:
 			message = f"Market Buy Order placed:\n{message}"
 
 			await self.send_message(update, context, message)
-		except (IndexError, ValueError):
-			await update.message.reply_text("Usage: /marketBuy <marketId> <amount>")
+		except Exception as e:
+			await update.message.reply_text("Usage: /marketBuyOrder <marketId> <amount> <price>")
+			raise e
 
 	async def market_sell_order(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
 		if not await self.validate_request(update, context):
@@ -396,10 +429,9 @@ class Telegram:
 			message = f"Market Sell Order placed:\n{message}"
 
 			await self.send_message(update, context, message)
-		except (IndexError, ValueError):
-			message = "Usage: /marketSell <marketId> <amount>"
-
-			await self.send_message(update, context, message)
+		except Exception as e:
+			await update.message.reply_text("Usage: /marketSellOrder <marketId> <amount> <price>")
+			raise e
 
 	async def limit_buy_order(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
 		if not await self.validate_request(update, context):
@@ -411,10 +443,9 @@ class Telegram:
 			message = f"Limit Buy Order placed:\n{message}"
 
 			await self.send_message(update, context, message)
-		except (IndexError, ValueError):
-			message = "Usage: /limitBuy <marketId> <amount> <price> <stopLossPrice>"
-
-			await self.send_message(update, context, message)
+		except Exception as e:
+			await update.message.reply_text("Usage: /limitBuyOrder <marketId> <amount> <price>")
+			raise e
 
 	async def limit_sell_order(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
 		if not await self.validate_request(update, context):
@@ -426,10 +457,9 @@ class Telegram:
 			message = f"Limit Sell Order placed:\n{message}"
 
 			await self.send_message(update, context, message)
-		except (IndexError, ValueError):
-			message = "Usage: /limitSell <marketId> <amount> <price> <stopLossPrice>"
-
-			await self.send_message(update, context, message)
+		except Exception as e:
+			await update.message.reply_text("Usage: /limitSellOrder <marketId> <amount> <price>")
+			raise e
 
 	async def place_order(self, update: Update, context: ContextTypes.DEFAULT_TYPE, order: Dict[str, Any] = None):
 		if not self.validate_request(update, context):
@@ -449,7 +479,7 @@ class Telegram:
 			elif len(arguments) == 5:
 				order_type, order_side, market_id, amount, price = arguments[0], arguments[1], arguments[2], arguments[3], arguments[4]
 			else:
-				message = """Unrecognized command. Usage:\n\n/place <limit/market> <buy/sell> <marketId> <amount> <price> <stopLossPrice (optional)>"""
+				message = """Unrecognized command. Usage:\n\n/place <limit/market> <buy/sell> <marketId> <amount> <price>"""
 
 				await self.send_message(update, context, message)
 
@@ -461,11 +491,11 @@ class Telegram:
 		order_side: OrderSide = str(order_side).lower()
 
 		if order_type not in ["limit", "market"]:
-			message = """Invalid order type. Allowed values are: limit/market"""
-
-			await self.send_message(update, context, message)
-
-			return
+			try:
+				await update.message.reply_text("""Invalid order type. Allowed values are: limit/market""")
+			# await self.send_message(update, context, message)
+			except Exception as e:
+				raise e
 
 		if order_side not in ["buy", "sell"]:
 			message = """Invalid order side. Allowed values are: buy/sell"""
@@ -535,7 +565,7 @@ class Telegram:
 
 
 # noinspection PyMethodMayBeStatic
-@handle_exceptions()
+@handle_exceptions
 class Model:
 	async def get_balance(self, market_id: str):
 		balances = await self.get_balances()
@@ -599,7 +629,7 @@ async def test():
 	telegram = Telegram()
 
 	# print(await model.get_balances())
-	print(await model.get_balance('BTC'))
+	# print(await model.get_balance('BTC'))
 	# print(await model.get_open_orders('BTCUSDT'))
 	# print(await model.market_buy_order('BTCUSDT', 0.00009))
 	# print(await model.market_sell_order('BTCUSDT', 0.00009))
