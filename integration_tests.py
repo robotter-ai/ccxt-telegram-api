@@ -14,6 +14,8 @@ class IntegrationTests:
 		self.use_sandbox_mode = True
 		self.market_symbols = ['tsoltusdc', 'tbtctusdc']
 		self.market_ids = ['200047', '200005']
+		self.order_sides = ['buy', 'sell']
+		self.order_types = ['limit', 'market']
 		self.client_order_id = 1712612349538
 		self.exchange_order_id = '5341481585'
 		self.community_exchange = None
@@ -31,7 +33,12 @@ class IntegrationTests:
 			# self.fetch_currencies()
 			# self.fetch_markets()
 			# self.fetch_trading_fee()
+
 			# self.create_order()
+			# self.create_order(self.order_sides[1])
+			# self.create_order(order_type=self.order_types[1])
+			# self.create_order(self.order_sides[1], self.order_types[1])
+
 			# self.cancel_order()
 			# self.fetch_balance()
 			# self.fetch_raw_order()
@@ -150,17 +157,34 @@ class IntegrationTests:
 		response = self.community_exchange.fetch_balance()
 		self.log(response)
 
-	def create_order(self):
-		response = self.community_exchange.create_order(
-			self.market_symbols[0], 'limit', 'buy', 0.1, 125.0,
-			{
-				'requestId': 1,
-				'selfTradePrevention': 0,
-				'postOnly': 0,
-				'timeInForce': 1,
-				'cancelOnDisconnect': False
-			}
-		)
+	def create_order(self, side='buy', order_type='limit'):
+		response = None
+		if order_type == 'limit':
+			if side == 'buy':
+				price = 130.0
+			else:
+				price = 150.0
+			response = self.community_exchange.create_order(
+				self.market_symbols[0], order_type, side, 0.1, price,
+				{
+					'requestId': 1,
+					'selfTradePrevention': 0,
+					'postOnly': 0,
+					'timeInForce': 1,
+					'cancelOnDisconnect': False
+				}
+			)
+		if order_type == 'market':
+			response = self.community_exchange.create_order(
+				self.market_symbols[0], order_type, side, 0.1,
+				{
+					'requestId': 1,
+					'selfTradePrevention': 0,
+					'postOnly': 0,
+					'timeInForce': 1,
+					'cancelOnDisconnect': False
+				}
+			)
 		self.log(response)
 
 	def cancel_order(self):
