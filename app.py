@@ -218,14 +218,14 @@ class Telegram(object):
 		if "place_order_step" in data:
 			if data["place_order_step"] == "ask_order_type":
 				if self.model.validate_order_type(text):
-					data["place_order"]["type"] = self.model.sanitize_order_type(text)
+					data["place_order"]["order_type"] = self.model.sanitize_order_type(text)
 					data["place_order_step"] = "ask_order_side"
 					await self.send_message("Enter the order side. Ex.: buy; sell", update, context, query)
 				else:
 					await self.send_message("""Please enter a valid order type ("market" or "limit").""", update, context, query)
 			elif data["place_order_step"] == "ask_order_side":
 				if self.model.validate_order_side(text):
-					data["place_order"]["side"] = self.model.sanitize_order_side(text)
+					data["place_order"]["order_side"] = self.model.sanitize_order_side(text)
 					data["place_order_step"] = "ask_market_id"
 					await self.send_message("Enter the market symbol/ID. Ex.: btcusdc", update, context, query)
 				else:
@@ -240,11 +240,11 @@ class Telegram(object):
 			elif data["place_order_step"] == "ask_amount":
 				if self.model.validate_order_amount(text):
 					data["place_order"]["amount"] = self.model.sanitize_order_amount(text)
-					if data["place_order"]["type"] == "market":
+					if data["place_order"]["order_type"] == "market":
 						data["place_order_step"] = "confirm"
 						formatted = self.model.beautify(data["place_order"])
 						await self.send_message(f"""Review your order and type "confirm" to place it or "cancel" to abort.\n\n{formatted}""", update, context, query)
-					elif data["place_order"]["type"] == "limit":
+					elif data["place_order"]["order_type"] == "limit":
 						data["place_order_step"] = "ask_price"
 						await self.send_message("Enter the price. Ex.: 123.4567", update, context, query)
 					else:
@@ -489,7 +489,7 @@ class Telegram(object):
 		message = await self.model.market_buy_order(market_id, amount)
 
 		message = self.model.beautify(message)
-		message = f"Market buy order successfully placed:\n{message}"
+		message = f"Market buy order successfully placed:\n\n{message}"
 
 		await self.send_message(message, update, context, query)
 
@@ -519,7 +519,7 @@ class Telegram(object):
 		message = await self.model.market_sell_order(market_id, amount)
 
 		message = self.model.beautify(message)
-		message = f"Market sell order successfully placed:\n{message}"
+		message = f"Market sell order successfully placed:\n\n{message}"
 
 		await self.send_message(message, update, context, query)
 
@@ -558,7 +558,7 @@ class Telegram(object):
 		message = await self.model.limit_buy_order(market_id, amount, price)
 
 		message = self.model.beautify(message)
-		message = f"Limit buy order successfully placed:\n{message}"
+		message = f"Limit buy order successfully placed:\n\n{message}"
 
 		await self.send_message(message, update, context, query)
 
@@ -597,7 +597,7 @@ class Telegram(object):
 		message = await self.model.limit_sell_order(market_id, amount, price)
 
 		message = self.model.beautify(message)
-		message = f"Limit sell order successfully placed:\n{message}"
+		message = f"Limit sell order successfully placed:\n\n{message}"
 
 		await self.send_message(message, update, context, query)
 
@@ -655,7 +655,7 @@ class Telegram(object):
 		message = await self.model.place_order(market_id, order_type, order_side, amount, price)
 
 		message = self.model.beautify(message)
-		message = f"Order successfully placed:\n{message}"
+		message = f"Order successfully placed:\n\n{message}"
 
 		await self.send_message(message, update, context, query)
 
@@ -775,17 +775,27 @@ class Model(object):
 		if not target:
 			return False
 
-		regex = re.compile(r'^\d+(\.\d+)?$')
+		if isinstance(target, str):
+			regex = re.compile(r'^\d+(\.\d+)?$')
 
-		return regex.match(target)
+			return regex.match(target)
+		elif isinstance(target, float) and target > 0:
+			return True
+
+		return False
 
 	def validate_order_price(self, target):
 		if not target:
 			return False
 
-		regex = re.compile(r'^\d+(\.\d+)?$')
+		if isinstance(target, str):
+			regex = re.compile(r'^\d+(\.\d+)?$')
 
-		return regex.match(target)
+			return regex.match(target)
+		elif isinstance(target, float) and target > 0:
+			return True
+
+		return False
 
 	async def get_balance(self, token_id: str):
 		balances = await self.get_balances()
