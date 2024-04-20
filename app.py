@@ -28,7 +28,7 @@ ccxt = sync_ccxt
 logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.ERROR)
 
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
-TELEGRAM_CHANNEL_ID = os.getenv("TELEGRAM_TELEGRAM_CHANNEL_ID")
+TELEGRAM_CHANNEL_ID = os.getenv("TELEGRAM_CHANNEL_ID")
 
 administrator = os.getenv("TELEGRAM_ADMIN_USERNAME", "").strip().replace("@", "")
 administrators = os.getenv("TELEGRAM_ADMIN_USERNAMES", "").split(",")
@@ -840,6 +840,7 @@ class Model(object):
 		attribute = getattr(exchange, name, None)
 
 		if callable(attribute):
+			@async_handle_exceptions
 			async def method(*args, **kwargs):
 				return attribute(*args, **kwargs)
 
