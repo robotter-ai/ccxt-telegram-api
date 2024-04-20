@@ -310,10 +310,10 @@ class Telegram(object):
 			[InlineKeyboardButton("Get a Token Balance", callback_data="balance")],
 			[InlineKeyboardButton("Get All Balances", callback_data="balances")],
 			[InlineKeyboardButton("Getl All Open Orders from a Market", callback_data="open_orders")],
-			[InlineKeyboardButton("Place a Market Buy Order", callback_data="place_market_buy_order")],
-			[InlineKeyboardButton("Place a Market Sell Order", callback_data="place_market_sell_order")],
-			[InlineKeyboardButton("Place a Limit Buy Order", callback_data="place_limit_buy_order")],
-			[InlineKeyboardButton("Place a Limit Sell Order", callback_data="place_limit_sell_order")],
+			# [InlineKeyboardButton("Place a Market Buy Order", callback_data="place_market_buy_order")],
+			# [InlineKeyboardButton("Place a Market Sell Order", callback_data="place_market_sell_order")],
+			# [InlineKeyboardButton("Place a Limit Buy Order", callback_data="place_limit_buy_order")],
+			# [InlineKeyboardButton("Place a Limit Sell Order", callback_data="place_limit_sell_order")],
 			[InlineKeyboardButton("Place a Custom Order", callback_data="place_order")],
 		]
 		reply_markup = InlineKeyboardMarkup(command_buttons)
