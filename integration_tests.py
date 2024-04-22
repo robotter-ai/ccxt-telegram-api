@@ -30,11 +30,11 @@ class IntegrationTests:
 		self.model: Model = None
 		self.telegram: Telegram = None
 
-	def initialize(self, community_exchange: CommunityExchange, pro_exchange: ProExchange, model, telegram):
+	def initialize(self, community_exchange: CommunityExchange, pro_exchange: ProExchange, telegram, model):
 		self.community_exchange = community_exchange
 		self.pro_exchange = pro_exchange
-		self.model = model
 		self.telegram = telegram
+		self.model = model
 
 	async def run(self):
 		try:
