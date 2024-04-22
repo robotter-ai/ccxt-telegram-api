@@ -163,7 +163,7 @@ class IntegrationTests:
 			if side == 'buy':
 				price = 130.0
 			else:
-				price = 150.0
+				price = 160.0
 			response = self.community_exchange.create_order(
 				self.market_symbols[0], order_type, side, 0.1, price,
 				{
@@ -176,8 +176,11 @@ class IntegrationTests:
 			)
 		if order_type == 'market':
 			response = self.community_exchange.create_order(
-				self.market_symbols[0], order_type, side, 0.1,
-				{
+				symbol=self.market_symbols[0],
+				type=order_type,
+				side=side,
+				amount=0.1,
+				params={
 					'requestId': 1,
 					'selfTradePrevention': 0,
 					'postOnly': 0,
