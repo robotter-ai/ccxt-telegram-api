@@ -1,11 +1,16 @@
-from ccxt import Exchange as CommunityExchange
-from ccxt.async_support import Exchange as ProExchange
 from singleton.singleton import ThreadSafeSingleton
 from typing import Dict
 
 import json
 
 import os
+
+# noinspection PyUnresolvedReferences
+import ccxt as sync_ccxt
+# noinspection PyUnresolvedReferences
+import ccxt.async_support as async_ccxt
+from ccxt import Exchange as CommunityExchange
+from ccxt.async_support import Exchange as ProExchange
 
 
 @ThreadSafeSingleton
@@ -24,6 +29,12 @@ class IntegrationTests:
 		self.pro_exchange: ProExchange = None
 		self.model: Model = None
 		self.telegram: Telegram = None
+
+	def initialize(self, community_exchange: CommunityExchange, pro_exchange: ProExchange, model, telegram):
+		self.community_exchange = community_exchange
+		self.pro_exchange = pro_exchange
+		self.model = model
+		self.telegram = telegram
 
 	async def run(self):
 		try:
@@ -106,11 +117,11 @@ class IntegrationTests:
 			print(str(target))
 
 	def get_all_exchanges(self):
-		exchanges = ccxt.exchanges
+		exchanges = sync_ccxt.exchanges
 		self.log(exchanges)
 
 	def create_community_exchange(self):
-		self.community_exchange = getattr(ccxt, self.exchange_id)()
+		self.community_exchange = getattr(sync_ccxt, self.exchange_id)()
 		self.community_exchange.api_key = os.getenv('API_KEY')
 		self.community_exchange.secret = os.getenv('API_SECRET')
 		if self.use_sandbox_mode:
@@ -118,7 +129,7 @@ class IntegrationTests:
 		# self.community_exchange.options['subaccountId'] = self.sub_account_id
 
 	def create_pro_exchange(self):
-		self.pro_exchange = getattr(ccxt.pro, self.exchange_id)()
+		self.pro_exchange = getattr(sync_ccxt.pro, self.exchange_id)()
 		self.pro_exchange.api_key = os.getenv('API_KEY')
 		self.pro_exchange.secret = os.getenv('API_SECRET')
 		if self.use_sandbox_mode:

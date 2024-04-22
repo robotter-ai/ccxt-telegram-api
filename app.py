@@ -20,6 +20,9 @@ from singleton.singleton import ThreadSafeSingleton
 import ccxt as sync_ccxt
 # noinspection PyUnresolvedReferences
 import ccxt.async_support as async_ccxt
+from ccxt import Exchange as CommunityExchange
+from ccxt.async_support import Exchange as ProExchange
+
 from ccxt.base.types import OrderType, OrderSide
 from integration_tests import IntegrationTests
 
@@ -29,21 +32,24 @@ logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s
 
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_CHANNEL_ID = os.getenv("TELEGRAM_CHANNEL_ID")
+TELEGRAM_LISTEN_COMMANDS: bool = os.getenv("TELEGRAM_LISTEN_COMMANDS", "false").lower() in ["true", "1"]
 
 administrator = os.getenv("TELEGRAM_ADMIN_USERNAME", "").strip().replace("@", "")
 administrators = os.getenv("TELEGRAM_ADMIN_USERNAMES", "").split(",")
 administrators = [username.strip().replace("@", "") for username in administrators if username.strip()]
 TELEGRAM_ADMIN_USERNAMES = [administrator] + administrators if administrator else administrators
 
-EXCHANGE_NAME = os.getenv("EXCHANGE_ID", "binance")
+EXCHANGE_ID = os.getenv("EXCHANGE_ID", "binance")
 EXCHANGE_API_KEY = os.getenv("EXCHANGE_API_KEY")
 EXCHANGE_API_SECRET = os.getenv("EXCHANGE_API_SECRET")
 EXCHANGE_ENVIRONMENT = os.getenv("EXCHANGE_ENVIRONMENT", "production")
 EXCHANGE_SUB_ACCOUNT_ID = os.getenv("EXCHANGE_SUB_ACCOUNT_ID")
 
+RUN_INTEGRATION_TESTS = os.getenv("RUN_INTEGRATION_TESTS", "false").lower() in ["true", "1"]
+
 UNAUTHORIZED_USER_MESSAGE = "Unauthorized user."
 
-exchange = getattr(ccxt, EXCHANGE_NAME)({
+community_exchange: CommunityExchange = getattr(ccxt, EXCHANGE_ID)({
 	"apiKey": EXCHANGE_API_KEY,
 	"secret": EXCHANGE_API_SECRET,
 	"options": {
@@ -52,7 +58,18 @@ exchange = getattr(ccxt, EXCHANGE_NAME)({
 	}
 })
 
-exchange.set_sandbox_mode(True)
+pro_exchange: ProExchange = getattr(async_ccxt, EXCHANGE_ID)({
+	"apiKey": EXCHANGE_API_KEY,
+	"secret": EXCHANGE_API_SECRET,
+	"options": {
+		"environment": EXCHANGE_ENVIRONMENT,
+		"subaccountId": EXCHANGE_SUB_ACCOUNT_ID,
+	}
+})
+
+if EXCHANGE_ENVIRONMENT != "production":
+	community_exchange.set_sandbox_mode(True)
+	pro_exchange.set_sandbox_mode(True)
 
 
 def sync_handle_exceptions(method):
@@ -129,8 +146,9 @@ class Telegram(object):
 		self.application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, self.text_handler))
 		self.application.add_handler(MessageHandler(filters.COMMAND, self.magic_command_handler))
 
-	def start(self):
-		self.application.run_polling()
+	def run(self):
+		if TELEGRAM_LISTEN_COMMANDS:
+			self.application.run_polling()
 
 	# noinspection PyMethodMayBeStatic
 	def is_admin(self, username) -> bool:
@@ -295,7 +313,7 @@ class Telegram(object):
 		method = getattr(self.model, command)
 
 		if not method:
-			await self.send_message(f"""Unrecognized command "{command}" for exchange {EXCHANGE_NAME}.""", update, context, query)
+			await self.send_message(f"""Unrecognized command "{command}" for exchange {EXCHANGE_ID}.""", update, context, query)
 
 		message = await method(*positional_args, **named_args)
 
@@ -322,7 +340,7 @@ class Telegram(object):
 		await self.send_message(
 			textwrap.dedent(
 				f"""
-					*🤖 Welcome to {str(EXCHANGE_NAME).upper()} Trading Bot! 📈*
+					*🤖 Welcome to {str(EXCHANGE_ID).upper()} Trading Bot! 📈*
 					
 										*Available commands:*
 					
@@ -363,7 +381,7 @@ class Telegram(object):
 		await self.send_message(
 			textwrap.dedent(
 				f"""
-					*🤖 Welcome to {str(EXCHANGE_NAME).upper()} Trading Bot! 📈*
+					*🤖 Welcome to {str(EXCHANGE_ID).upper()} Trading Bot! 📈*
 					
 					Here are the available commands:
 					
@@ -805,7 +823,7 @@ class Model(object):
 		return balance
 
 	async def get_balances(self) -> Dict[str, Any]:
-		balances = exchange.fetch_balance()
+		balances = community_exchange.fetch_balance()
 
 		non_zero_balances_keys = {key for key, value in balances.get("total", {}).items() if value > 0}
 		non_zero_balances = {key: balances[key] for key in non_zero_balances_keys}
@@ -818,27 +836,27 @@ class Model(object):
 		return sorted_balances
 
 	async def get_open_orders(self, market_id: str):
-		return exchange.fetch_open_orders(market_id)
+		return community_exchange.fetch_open_orders(market_id)
 
 	async def market_buy_order(self, market_id: str, amount: float):
-		return exchange.create_order(market_id, "market", "buy", amount)
+		return community_exchange.create_order(market_id, "market", "buy", amount)
 
 	async def market_sell_order(self, market_id: str, amount: float):
-		return exchange.create_order(market_id, "market", "sell", amount)
+		return community_exchange.create_order(market_id, "market", "sell", amount)
 
 	async def limit_buy_order(self, market_id: str, amount: float, price: float):
-		return exchange.create_order(market_id, "limit", "buy", amount, price)
+		return community_exchange.create_order(market_id, "limit", "buy", amount, price)
 
 	async def limit_sell_order(self, market_id: str, amount: float, price: float):
-		return exchange.create_order(market_id, "limit", "sell", amount, price)
+		return community_exchange.create_order(market_id, "limit", "sell", amount, price)
 
 	async def place_order(self, market: str, order_type: OrderType, order_side: OrderSide, amount: float, price: float = None, stop_loss_price: float = None):
-		return exchange.create_order(market, order_type, order_side, amount, price, {
+		return community_exchange.create_order(market, order_type, order_side, amount, price, {
 			"stopLossPrice": stop_loss_price
 		})
 
 	def __getattr__(self, name):
-		attribute = getattr(exchange, name, None)
+		attribute = getattr(community_exchange, name, None)
 
 		if callable(attribute):
 			@async_handle_exceptions
@@ -898,22 +916,30 @@ class Model(object):
 			return target
 
 
-def test():
-	IntegrationTests.instance().community_exchange = exchange
-	IntegrationTests.instance().telegram = Telegram.instance()
-	IntegrationTests.instance().model = Telegram.instance().model
-
-	import asyncio
-	asyncio.get_event_loop().run_until_complete(
-		IntegrationTests.instance().run()
-	)
-
-
-def main():
+def initialize():
 	Telegram.instance().initialize()
-	Telegram.instance().start()
+
+
+def test():
+	if RUN_INTEGRATION_TESTS:
+		IntegrationTests.instance().initialize(
+			community_exchange,
+			pro_exchange,
+			Telegram.instance(),
+			Model.instance()
+		)
+
+		import asyncio
+		asyncio.get_event_loop().run_until_complete(
+			IntegrationTests.instance().run()
+		)
+
+
+def start():
+	Telegram.instance().run()
 
 
 if __name__ == "__main__":
-	main()
-	# test()
+	initialize()
+	test()
+	start()
