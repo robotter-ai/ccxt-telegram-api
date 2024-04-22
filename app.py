@@ -129,6 +129,7 @@ class Telegram(object):
 		self.application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, self.text_handler))
 		self.application.add_handler(MessageHandler(filters.COMMAND, self.magic_command_handler))
 
+	def start(self):
 		self.application.run_polling()
 
 	# noinspection PyMethodMayBeStatic
@@ -842,7 +843,7 @@ class Model(object):
 		if callable(attribute):
 			@async_handle_exceptions
 			async def method(*args, **kwargs):
-				return attribute(*args, **kwargs)
+				return self.handle_magic_method_output(attribute(*args, **kwargs))
 
 			return method
 
@@ -898,13 +899,21 @@ class Model(object):
 
 
 def test():
-	IntegrationTests.instance().run()
+	IntegrationTests.instance().community_exchange = exchange
+	IntegrationTests.instance().telegram = Telegram.instance()
+	IntegrationTests.instance().model = Telegram.instance().model
+
+	import asyncio
+	asyncio.get_event_loop().run_until_complete(
+		IntegrationTests.instance().run()
+	)
 
 
 def main():
 	Telegram.instance().initialize()
+	Telegram.instance().start()
 
 
 if __name__ == "__main__":
-	test()
 	main()
+	# test()

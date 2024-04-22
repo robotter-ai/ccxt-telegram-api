@@ -1,3 +1,5 @@
+from ccxt import Exchange as CommunityExchange
+from ccxt.async_support import Exchange as ProExchange
 from singleton.singleton import ThreadSafeSingleton
 from typing import Dict
 
@@ -5,6 +7,10 @@ import json
 
 import os
 import ccxt
+
+from app import Model, Telegram
+
+
 # import ccxt.async_support as ccxt
 
 
@@ -18,10 +24,12 @@ class IntegrationTests:
 		self.order_types = ['limit', 'market']
 		self.client_order_id = 1712612349538
 		self.exchange_order_id = '5341481585'
-		self.community_exchange = None
-		self.pro_exchange = None
+		self.community_exchange: CommunityExchange = None
+		self.pro_exchange: ProExchange = None
+		self.model: Model = None
+		self.telegram: Telegram = None
 
-	def run(self):
+	async def run(self):
 		try:
 			print("begin")
 
@@ -61,19 +69,19 @@ class IntegrationTests:
 			# self.watch_order_book()
 			# self.parse_order()
 
-			# print(await model.get_balances())
-			# print(await model.get_balance("BTC"))
-			# print(await model.get_open_orders("BTCUSDT"))
-			# print(await model.market_buy_order("BTCUSDT", 0.00009))
-			# print(await model.market_sell_order("BTCUSDT", 0.00009))
-			# print(await model.limit_buy_order("BTCUSDT", 0.001, 20000))
-			# print(await model.limit_sell_order("BTCUSDT", 0.00009, 99999))
-			# print(await model.place_order("BTCUSDT", "market", "buy", 0.0001))
-			# print(await model.place_order("BTCUSDT", "limit", "sell", 0.00009, 99999))
+			# print(await self.model.get_balances())
+			# print(await self.model.get_balance("BTC"))
+			# print(await self.model.get_open_orders("BTCUSDT"))
+			# print(await self.model.market_buy_order("BTCUSDT", 0.00009))
+			# print(await self.model.market_sell_order("BTCUSDT", 0.00009))
+			# print(await self.model.limit_buy_order("BTCUSDT", 0.001, 20000))
+			# print(await self.model.limit_sell_order("BTCUSDT", 0.00009, 99999))
+			# print(await self.model.place_order("BTCUSDT", "market", "buy", 0.0001))
+			# print(await self.model.place_order("BTCUSDT", "limit", "sell", 0.00009, 99999))
 
-			# print(await model.fetch_markets())
-			# print(await model.fetch_balance())
-			# print(await model.fetch_ticker("BTCUSDT"))
+			# print(await self.model.fetch_markets())
+			# print(await self.model.fetch_balance())
+			# print(await self.model.fetch_ticker("BTCUSDT"))
 
 			# await self.place_order(None, None, {
 			# 	"type": "market",
