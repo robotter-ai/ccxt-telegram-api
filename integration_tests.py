@@ -6,17 +6,13 @@ from typing import Dict
 import json
 
 import os
-import ccxt
-
-from app import Model, Telegram
-
-
-# import ccxt.async_support as ccxt
 
 
 @ThreadSafeSingleton
 class IntegrationTests:
 	def __init__(self):
+		from app import Model, Telegram
+
 		self.use_sandbox_mode = True
 		self.market_symbols = ['tsoltusdc', 'tbtctusdc']
 		self.market_ids = ['200047', '200005']
