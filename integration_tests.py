@@ -60,7 +60,7 @@ class IntegrationTests:
 			# self.fetch_order()
 			# self.fetch_open_orders()
 			# self.fetch_orders()
-			# self.fetch_orders_all_markets()
+			# self.fetch_raw_orders()
 			# self.fetch_order_book()
 			# self.fetch_ticker()
 			# self.fetch_tickers()
@@ -228,8 +228,8 @@ class IntegrationTests:
 		})
 		self.log(response)
 
-	def fetch_orders_all_markets(self):
-		response = self.community_exchange.fetch_orders_all_markets(None, None)
+	def fetch_raw_orders(self):
+		response = self.community_exchange.fetch_raw_orders(None, None)
 		self.log(response)
 
 	def fetch_open_orders(self):
