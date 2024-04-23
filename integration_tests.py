@@ -229,7 +229,7 @@ class IntegrationTests:
 		self.log(response)
 
 	def fetch_raw_orders(self):
-		response = self.community_exchange.fetch_raw_orders(None, None)
+		response = self.community_exchange.fetch_raw_orders()
 		self.log(response)
 
 	def fetch_open_orders(self):
