@@ -255,7 +255,8 @@ class IntegrationTests:
 		self.log(response)
 
 	def fetch_status(self):
-		pass
+		response = self.community_exchange.fetch_status()
+		self.log(response)
 
 	def watch_order_book(self):
 		response = self.pro_exchange.watch_order_book(self.market_symbols[0])
