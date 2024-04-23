@@ -15,6 +15,7 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, Callbac
 from telegram.ext import Application, CommandHandler, ContextTypes, CallbackQueryHandler, filters, MessageHandler
 from typing import Any, Dict, List
 from singleton.singleton import ThreadSafeSingleton
+from enum import Enum
 
 # noinspection PyUnresolvedReferences
 import ccxt as sync_ccxt
@@ -70,6 +71,27 @@ pro_exchange: ProExchange = getattr(async_ccxt, EXCHANGE_ID)({
 if EXCHANGE_ENVIRONMENT != "production":
 	community_exchange.set_sandbox_mode(True)
 	pro_exchange.set_sandbox_mode(True)
+
+
+class Output(Enum):
+	ID = "id"
+	CLIENT_ORDER_ID = "clientOrderId"
+	DATETIME = "datetime"
+	SYMBOL = "symbol"
+	TYPE = "type"
+	SIDE = "side"
+	PRICE = "price"
+	AMOUNT = "amount"
+	FILLED = "filled"
+	STATUS = "status"
+
+	@staticmethod
+	def multiple_objects(id: str):
+		for status in SystemStatus:
+			if status.value == id:
+				return status
+
+		raise ValueError(f"""Status with id "{id}" not found.""")
 
 
 def sync_handle_exceptions(method):
@@ -329,10 +351,10 @@ class Telegram(object):
 			[InlineKeyboardButton("Get a Token Balance", callback_data="balance")],
 			[InlineKeyboardButton("Get All Balances", callback_data="balances")],
 			[InlineKeyboardButton("Getl All Open Orders from a Market", callback_data="open_orders")],
-			# [InlineKeyboardButton("Place a Market Buy Order", callback_data="place_market_buy_order")],
-			# [InlineKeyboardButton("Place a Market Sell Order", callback_data="place_market_sell_order")],
-			# [InlineKeyboardButton("Place a Limit Buy Order", callback_data="place_limit_buy_order")],
-			# [InlineKeyboardButton("Place a Limit Sell Order", callback_data="place_limit_sell_order")],
+			[InlineKeyboardButton("Place a Market Buy Order", callback_data="place_market_buy_order")],
+			[InlineKeyboardButton("Place a Market Sell Order", callback_data="place_market_sell_order")],
+			[InlineKeyboardButton("Place a Limit Buy Order", callback_data="place_limit_buy_order")],
+			[InlineKeyboardButton("Place a Limit Sell Order", callback_data="place_limit_sell_order")],
 			[InlineKeyboardButton("Place a Custom Order", callback_data="place_order")],
 		]
 		reply_markup = InlineKeyboardMarkup(command_buttons)
@@ -836,24 +858,111 @@ class Model(object):
 		return sorted_balances
 
 	async def get_open_orders(self, market_id: str):
-		return community_exchange.fetch_open_orders(market_id)
+		response = community_exchange.fetch_open_orders(market_id)
+
+		output = [
+			{
+				"ïd": item.get("id"),
+				"clientOrderId": item.get("clientOrderId"),
+				"datetime": item.get("datetime"),
+				"symbol": item.get("symbol"),
+				"type": item.get("type"),
+				"side": item.get("side"),
+				"price": item.get("price"),
+				"amount": item.get("amount"),
+				"filled": item.get("filled")
+			} for item in response
+		]
+
+		return output
 
 	async def market_buy_order(self, market_id: str, amount: float):
-		return community_exchange.create_order(market_id, "market", "buy", amount)
+		response = community_exchange.create_order(market_id, "market", "buy", amount)
+
+		output = {
+			Output.ID: response.get(Output.ID.value),
+			Output.CLIENT_ORDER_ID: response.get(Output.CLIENT_ORDER_ID.value),
+			Output.DATETIME: response.get(Output.DATETIME.value),
+			Output.SYMBOL: response.get(Output.SYMBOL.value),
+			Output.TYPE: response.get(Output.TYPE.value),
+			Output.SIDE: response.get(Output.SIDE.value),
+			Output.PRICE: response.get(Output.PRICE.value),
+			Output.AMOUNT: response.get(Output.AMOUNT.value),
+			Output.FILLED: response.get(Output.FILLED.value),
+			Output.STATUS: response.get(Output.STATUS.value)
+		}
+
+		return output
 
 	async def market_sell_order(self, market_id: str, amount: float):
-		return community_exchange.create_order(market_id, "market", "sell", amount)
+		response = community_exchange.create_order(market_id, "market", "sell", amount)
+
+		output = {
+			"ïd": response.get("id"),
+			"clientOrderId": response.get("clientOrderId"),
+			"datetime": response.get("datetime"),
+			"symbol": response.get("symbol"),
+			"type": response.get("type"),
+			"side": response.get("side"),
+			"price": response.get("price"),
+			"amount": response.get("amount"),
+			"filled": response.get("filled"),
+			"status": response.get("status")
+		}
+		return output
 
 	async def limit_buy_order(self, market_id: str, amount: float, price: float):
-		return community_exchange.create_order(market_id, "limit", "buy", amount, price)
+		response = community_exchange.create_order(market_id, "limit", "buy", amount, price)
+
+		output = {
+			"ïd": response.get("id"),
+			"clientOrderId": response.get("clientOrderId"),
+			"datetime": response.get("datetime"),
+			"symbol": response.get("symbol"),
+			"type": response.get("type"),
+			"side": response.get("side"),
+			"price": response.get("price"),
+			"amount": response.get("amount"),
+			"filled": response.get("filled"),
+			"status": response.get("status")
+		}
+
+		return output
 
 	async def limit_sell_order(self, market_id: str, amount: float, price: float):
-		return community_exchange.create_order(market_id, "limit", "sell", amount, price)
+		response = community_exchange.create_order(market_id, "limit", "sell", amount, price)
+
+		output = {
+			"ïd": response.get("id"),
+			"clientOrderId": response.get("clientOrderId"),
+			"datetime": response.get("datetime"),
+			"symbol": response.get("symbol"),
+			"type": response.get("type"),
+			"side": response.get("side"),
+			"price": response.get("price"),
+			"amount": response.get("amount"),
+			"filled": response.get("filled"),
+			"status": response.get("status")
+		}
+		return output
 
 	async def place_order(self, market: str, order_type: OrderType, order_side: OrderSide, amount: float, price: float = None, stop_loss_price: float = None):
-		return community_exchange.create_order(market, order_type, order_side, amount, price, {
-			"stopLossPrice": stop_loss_price
-		})
+		response = community_exchange.create_order(market, order_type, order_side, amount, price)
+
+		output = {
+			"ïd": response.get("id"),
+			"clientOrderId": response.get("clientOrderId"),
+			"datetime": response.get("datetime"),
+			"symbol": response.get("symbol"),
+			"type": response.get("type"),
+			"side": response.get("side"),
+			"price": response.get("price"),
+			"amount": response.get("amount"),
+			"filled": response.get("filled"),
+			"status": response.get("status")
+		}
+
+		return output
 
 	def __getattr__(self, name):
 		attribute = getattr(community_exchange, name, None)
