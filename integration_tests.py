@@ -65,7 +65,6 @@ class IntegrationTests:
 			# self.fetch_ticker()
 			# self.fetch_tickers()
 			# self.cancel_all_orders()
-			# self.fetch_orders()
 			# self.fetch_ohlcv()
 			# self.fetch_trades()
 			# self.fetch_my_trades()
@@ -74,7 +73,6 @@ class IntegrationTests:
 			# self.deposit()
 			# self.withdraw()
 			# self.watch_order_book()
-			# self.parse_order()
 
 			# print(await self.model.get_balances())
 			# print(await self.model.get_balance("BTC"))
