@@ -344,7 +344,7 @@ class Telegram(object):
 
 		message = await method(*positional_args, **named_args)
 
-		message = self.model.handle_magic_method_output(message)
+		message = self.model.beautify(message)
 
 		await self.send_message(message, update, context, query)
 
