@@ -60,12 +60,11 @@ class IntegrationTests:
 			# self.fetch_order()
 			# self.fetch_open_orders()
 			# self.fetch_orders()
-			# self.fetch_orders_all_markets()
+			# self.fetch_raw_orders()
 			# self.fetch_order_book()
 			# self.fetch_ticker()
 			# self.fetch_tickers()
 			# self.cancel_all_orders()
-			# self.fetch_orders()
 			# self.fetch_ohlcv()
 			# self.fetch_trades()
 			# self.fetch_my_trades()
@@ -74,7 +73,6 @@ class IntegrationTests:
 			# self.deposit()
 			# self.withdraw()
 			# self.watch_order_book()
-			# self.parse_order()
 
 			# print(await self.model.get_balances())
 			# print(await self.model.get_balance("BTC"))
@@ -230,8 +228,8 @@ class IntegrationTests:
 		})
 		self.log(response)
 
-	def fetch_orders_all_markets(self):
-		response = self.community_exchange.fetch_orders_all_markets(None, None)
+	def fetch_raw_orders(self):
+		response = self.community_exchange.fetch_raw_orders()
 		self.log(response)
 
 	def fetch_open_orders(self):
@@ -257,7 +255,8 @@ class IntegrationTests:
 		self.log(response)
 
 	def fetch_status(self):
-		pass
+		response = self.community_exchange.fetch_status()
+		self.log(response)
 
 	def watch_order_book(self):
 		response = self.pro_exchange.watch_order_book(self.market_symbols[0])
