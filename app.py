@@ -73,25 +73,30 @@ if EXCHANGE_ENVIRONMENT != "production":
 	pro_exchange.set_sandbox_mode(True)
 
 
-class Output(Enum):
-	ID = "id"
-	CLIENT_ORDER_ID = "clientOrderId"
-	DATETIME = "datetime"
-	SYMBOL = "symbol"
-	TYPE = "type"
-	SIDE = "side"
-	PRICE = "price"
-	AMOUNT = "amount"
-	FILLED = "filled"
-	STATUS = "status"
+class Operation(Enum):
+	FETCH_OPEN_ORDERS = "fetch_open_orders"
+	FETCH_ORDER = "fetch_order"
+	FETCH_ORDERS = "fetch_orders"
+	FETCH_ORDERS_ALL_MARKETS = "fetch_orders_all_markets"
+	FETCH_CURRENCIES = "fetch_currencies"
+	FETCH_MARKETS = "fetch_markets"
+	FETCH_TICKER = "fetch_ticker"
+	FETCH_TICKERS = "fetch_tickers"
+	FETCH_ORDER_BOOK = "fetch_order_book"
+	FETCH_TRADES = "fetch_trades"
+	FETCH_MY_TRADES = "fetch_my_trades"
+	FETCH_CLOSED_ORDERS = "fetch_closed_orders"
+	FETCH_STATUS = "fetch_status"
+	FETCH_BALANCE = "fetch_balance"
+	FETCH_BALANCES = "fetch_balances"
+	FETCH_TRADING_FEE = "fetch_trading_fee"
+	FETCH_RAW_ORDER = "fetch_raw_order"
+	WITHDRAW = "withdraw"
+	FETCH_OHLCV = "fetch_ohlcv"
 
-	@staticmethod
-	def multiple_objects(id: str):
-		for status in SystemStatus:
-			if status.value == id:
-				return status
 
-		raise ValueError(f"""Status with id "{id}" not found.""")
+
+
 
 
 def sync_handle_exceptions(method):
@@ -879,18 +884,19 @@ class Model(object):
 	async def market_buy_order(self, market_id: str, amount: float):
 		response = community_exchange.create_order(market_id, "market", "buy", amount)
 
-		output = {
-			Output.ID: response.get(Output.ID.value),
-			Output.CLIENT_ORDER_ID: response.get(Output.CLIENT_ORDER_ID.value),
-			Output.DATETIME: response.get(Output.DATETIME.value),
-			Output.SYMBOL: response.get(Output.SYMBOL.value),
-			Output.TYPE: response.get(Output.TYPE.value),
-			Output.SIDE: response.get(Output.SIDE.value),
-			Output.PRICE: response.get(Output.PRICE.value),
-			Output.AMOUNT: response.get(Output.AMOUNT.value),
-			Output.FILLED: response.get(Output.FILLED.value),
-			Output.STATUS: response.get(Output.STATUS.value)
-		}
+		output = [
+			{
+				"ïd": item.get("id"),
+				"clientOrderId": item.get("clientOrderId"),
+				"datetime": item.get("datetime"),
+				"symbol": item.get("symbol"),
+				"type": item.get("type"),
+				"side": item.get("side"),
+				"price": item.get("price"),
+				"amount": item.get("amount"),
+				"filled": item.get("filled")
+			} for item in response
+		]
 
 		return output
 
@@ -964,13 +970,19 @@ class Model(object):
 
 		return output
 
-	def __getattr__(self, name):
-		attribute = getattr(community_exchange, name, None)
+	def __getattr__(self, method_name):
+		attribute = getattr(community_exchange, method_name, None)
 
 		if callable(attribute):
 			@async_handle_exceptions
 			async def method(*args, **kwargs):
-				return self.handle_magic_method_output(attribute(*args, **kwargs))
+				result = attribute(*args, **kwargs)
+				output = self.handle_magic_method_output(
+					method_name,
+					result
+				)
+
+				return output
 
 			return method
 
@@ -1006,8 +1018,64 @@ class Model(object):
 
 		return result
 
-	def handle_magic_method_output(self, target):
-		return self.beautify(target)
+	def handle_magic_method_output(self, method, result):
+		if method == Operation.FETCH_ORDER:
+			output = {"id": result.get("id")}
+		elif method == Operation.FETCH_ORDERS:
+			output = {"id": result.get("id")}
+		elif method == Operation.FETCH_OPEN_ORDERS:
+			output = {"id": result.get("id")}
+		elif method == Operation.FETCH_ORDERS_ALL_MARKETS:
+			output = {"id": result.get("id")}
+		elif method == Operation.FETCH_CURRENCIES:
+			output = {"id": result.get("id")}
+		elif method == Operation.FETCH_MARKETS:
+			output = {"id": result.get("id")}
+		elif method == Operation.FETCH_TICKER.value:
+			output = {
+				"symbol": result.get("symbol"),
+				"datetime": result.get("datetime"),
+				"high": result.get("high"),
+				"low": result.get("low"),
+				"bid": result.get("bid"),
+				"ask": result.get("ask"),
+				"open": result.get("open"),
+				"close": result.get("close"),
+				"last": result.get("last"),
+				"change": result.get("change"),
+				"percentage": result.get("percentage"),
+				"average": result.get("average"),
+				"baseVolume": result.get("baseVolume"),
+				"quoteVolume": result.get("quoteVolume")
+
+			}
+		elif method == Operation.FETCH_TICKERS:
+			output = {"id": result.get("id")}
+		elif method == Operation.FETCH_ORDER_BOOK:
+			output = {"id": result.get("id")}
+		elif method == Operation.FETCH_TRADES:
+			output = {"id": result.get("id")}
+		elif method == Operation.FETCH_MY_TRADES:
+			output = {"id": result.get("id")}
+		elif method == Operation.FETCH_CLOSED_ORDERS:
+			output = {"id": result.get("id")}
+		elif method == Operation.FETCH_STATUS:
+			output = {"id": result.get("id")}
+		elif method == Operation.FETCH_BALANCE:
+			output = {"id": result.get("id")}
+		elif method == Operation.FETCH_BALANCES:
+			output = {"id": result.get("id")}
+		elif method == Operation.FETCH_TRADING_FEE:
+			output = {"id": result.get("id")}
+		elif method == Operation.FETCH_RAW_ORDER:
+			output = {"id": result.get("id")}
+		elif method == Operation.WITHDRAW:
+			output = {"id": result.get("id")}
+		elif method == Operation.FETCH_OHLCV:
+			output = {"id": result.get("id")}
+		else:
+			output = {"id": result.get("id")}
+		return output
 
 	def dump(self, target: Any):
 		try:
