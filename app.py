@@ -473,20 +473,36 @@ class Telegram(object):
 		for token in tokens:
 			if "=" in token:
 				key, value = token.split("=", 1)
-				named_args[key] = value
+				named_args[key] = self.parse_argument(value)
 			else:
-				positional_args.append(token)
+				positional_args.append(self.parse_argument(token))
 
-		method = getattr(self.model, command)
+		method = getattr(self.model, command, None)
 
 		if not method:
 			await self.send_message(f"""Unrecognized command "{command}" for exchange {EXCHANGE_ID}.""", update, context, query)
+			return
 
 		message = await method(*positional_args, **named_args)
 
 		message = self.model.beautify(message)
 
 		await self.send_message(message, update, context, query)
+
+	# noinspection PyMethodMayBeStatic
+	def parse_argument(self, arg):
+		try:
+			return json.loads(arg)
+		except json.JSONDecodeError:
+			if arg.isdigit():
+				return int(arg)
+			try:
+				return float(arg)
+			except ValueError:
+				if arg.lower() in ["true", "false"]:
+					return arg.lower() == "true"
+
+		return arg
 
 	async def start(self, update: Update, context: ContextTypes.DEFAULT_TYPE, query: CallbackQuery = None, data: Any = None):
 		if not await self.validate_request(update, context):
