@@ -1359,7 +1359,6 @@ def test():
 			Model.instance()
 		)
 
-		import asyncio
 		asyncio.get_event_loop().run_until_complete(
 			IntegrationTests.instance().run()
 		)
