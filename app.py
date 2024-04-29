@@ -73,30 +73,34 @@ if EXCHANGE_ENVIRONMENT != "production":
 	pro_exchange.set_sandbox_mode(True)
 
 
-class Operation(Enum):
-	FETCH_OPEN_ORDERS = "fetch_open_orders"
-	FETCH_ORDER = "fetch_order"
-	FETCH_ORDERS = "fetch_orders"
-	FETCH_ORDERS_ALL_MARKETS = "fetch_orders_all_markets"
-	FETCH_CURRENCIES = "fetch_currencies"
-	FETCH_MARKETS = "fetch_markets"
-	FETCH_TICKER = "fetch_ticker"
-	FETCH_TICKERS = "fetch_tickers"
-	FETCH_ORDER_BOOK = "fetch_order_book"
-	FETCH_TRADES = "fetch_trades"
-	FETCH_MY_TRADES = "fetch_my_trades"
-	FETCH_CLOSED_ORDERS = "fetch_closed_orders"
-	FETCH_STATUS = "fetch_status"
-	FETCH_BALANCE = "fetch_balance"
-	FETCH_BALANCES = "fetch_balances"
-	FETCH_TRADING_FEE = "fetch_trading_fee"
-	FETCH_RAW_ORDER = "fetch_raw_order"
+class MagicMethod(Enum):
+	CANCEL_ALL_ORDERS = "cancelAllOrders"
+	CANCEL_ORDER = "cancelOrder"
+	CREATE_ORDER = "createOrder"
+	DESCRIBE = "describe"
+	DEPOSIT = "deposit"
+	FETCH_BALANCE = "fetchBalance"
+	FETCH_CLOSED_ORDERS = "fetchClosedOrders"
+	FETCH_CURRENCIES = "fetchCurrencies"
+	FETCH_MARKETS = "fetchMarkets"
+	FETCH_MY_TRADES = "fetchMyTrades"
+	FETCH_OHLCV = "fetchOHLCV"
+	FETCH_OPEN_ORDERS = "fetchOpenOrders"
+	FETCH_ORDER = "fetchOrder"
+	FETCH_ORDER_BOOK = "fetchOrderBook"
+	FETCH_ORDERS = "fetchOrders"
+	FETCH_ORDERS_ALL_MARKETS = "fetchOrdersAllMarkets"
+	FETCH_STATUS = "fetchStatus"
+	FETCH_TICKER = "fetchTicker"
+	FETCH_TICKERS = "fetchTickers"
+	FETCH_TRADES = "fetchTrades"
+	FETCH_TRADING_FEE = "fetchTradingFee"
+	SET_SANDBOX_MODE = "setSandboxMode"
 	WITHDRAW = "withdraw"
-	FETCH_OHLCV = "fetch_ohlcv"
 
-
-
-
+	@staticmethod
+	def is_equivalent(target: str, method: Any):
+		return str(target).replace("_", "").lower() == method.value.replace("_", "").lower()
 
 
 def sync_handle_exceptions(method):
@@ -213,18 +217,26 @@ class Telegram(object):
 			context.user_data["open_orders_step"] = "ask_market_id"
 		elif data == "place_market_buy_order":
 			context.user_data["place_market_buy_order"] = {}
+			context.user_data["place_market_buy_order"]["order_type"] = "market"
+			context.user_data["place_market_buy_order"]["order_side"] = "buy"
 			await self.send_message("Enter the market id. Ex: btcusdc", update, context, query)
 			context.user_data["place_market_buy_order_step"] = "ask_market_id"
 		elif data == "place_market_sell_order":
 			context.user_data["place_market_sell_order"] = {}
+			context.user_data["place_market_buy_order"]["order_type"] = "market"
+			context.user_data["place_market_buy_order"]["order_side"] = "sell"
 			await self.send_message("Enter the market id. Ex: btcusdc", update, context, query)
 			context.user_data["place_market_sell_order_step"] = "ask_market_id"
 		elif data == "place_limit_buy_order":
 			context.user_data["place_limit_buy_order"] = {}
+			context.user_data["place_limit_buy_order"]["order_type"] = "limit"
+			context.user_data["place_limit_buy_order"]["order_side"] = "buy"
 			await self.send_message("Enter the market id. Ex: btcusdc", update, context, query)
 			context.user_data["place_limit_buy_order_step"] = "ask_market_id"
 		elif data == "place_limit_sell_order":
 			context.user_data["place_limit_sell_order"] = {}
+			context.user_data["place_limit_sell_order"]["order_type"] = "limit"
+			context.user_data["place_limit_sell_order"]["order_side"] = "sell"
 			await self.send_message("Enter the market id. Ex: btcusdc", update, context, query)
 			context.user_data["place_limit_sell_order_step"] = "ask_market_id"
 		elif data == "place_order":
@@ -261,6 +273,132 @@ class Telegram(object):
 						data.clear()
 				else:
 					await self.send_message("""Please enter a valid market id ("btcusdc").""", update, context, query)
+		if "place_market_buy_order_step" in data:
+			if data["place_market_buy_order_step"] == "ask_market_id":
+				if self.model.validate_market_id(text):
+					data["place_market_buy_order"]["market_id"] = self.model.sanitize_market_id(text)
+					data["place_market_buy_order_step"] = "ask_amount"
+					await self.send_message("Enter the amount. Ex.: 123.4567", update, context, query)
+				else:
+					await self.send_message("""Please enter a valid market id ("btcusdc").""", update, context, query)
+			elif data["place_market_buy_order_step"] == "ask_amount":
+				if self.model.validate_order_amount(text):
+					data["place_market_buy_order"]["amount"] = self.model.sanitize_order_amount(text)
+					data["place_market_buy_order_step"] = "confirm"
+					formatted = self.model.beautify(data["place_market_buy_order"])
+					await self.send_message(f"""Review your order and type "confirm" to place it or "cancel" to abort.\n\n{formatted}""", update, context, query)
+				else:
+					await self.send_message("Please enter a valid amount. Ex.: 123.4567", update, context, query)
+			elif data["place_market_buy_order_step"] == "confirm":
+				text = text.lower()
+				if text == "confirm":
+					try:
+						await self.place_order(update, context, query, data["place_market_buy_order"])
+					finally:
+						data.clear()
+				elif text.lower() == "cancel":
+					data.clear()
+					await self.send_message("Order canceled.", update, context, query)
+				else:
+					await self.send_message("""Please type "confirm" to place the order or "cancel" to abort.""", update, context, query)
+		if "place_market_sell_order_step" in data:
+			if data["place_market_sell_order_step"] == "ask_market_id":
+				if self.model.validate_market_id(text):
+					data["place_market_sell_order"]["market_id"] = self.model.sanitize_market_id(text)
+					data["place_market_sell_order_step"] = "ask_amount"
+					await self.send_message("Enter the amount. Ex.: 123.4567", update, context, query)
+				else:
+					await self.send_message("""Please enter a valid market id ("btcusdc").""", update, context, query)
+			elif data["place_market_sell_order_step"] == "ask_amount":
+				if self.model.validate_order_amount(text):
+					data["place_market_sell_order"]["amount"] = self.model.sanitize_order_amount(text)
+					data["place_market_sell_order_step"] = "confirm"
+					formatted = self.model.beautify(data["place_market_sell_order"])
+					await self.send_message(f"""Review your order and type "confirm" to place it or "cancel" to abort.\n\n{formatted}""", update, context, query)
+				else:
+					await self.send_message("Please enter a valid amount. Ex.: 123.4567", update, context, query)
+			elif data["place_market_sell_order_step"] == "confirm":
+				text = text.lower()
+				if text == "confirm":
+					try:
+						await self.place_order(update, context, query, data["place_market_sell_order"])
+					finally:
+						data.clear()
+				elif text.lower() == "cancel":
+					data.clear()
+					await self.send_message("Order canceled.", update, context, query)
+				else:
+					await self.send_message("""Please type "confirm" to place the order or "cancel" to abort.""", update, context, query)
+		if "place_limit_buy_order_step" in data:
+			if data["place_limit_buy_order_step"] == "ask_market_id":
+				if self.model.validate_market_id(text):
+					data["place_limit_buy_order"]["market_id"] = self.model.sanitize_market_id(text)
+					data["place_limit_buy_order_step"] = "ask_amount"
+					await self.send_message("Enter the amount. Ex.: 123.4567", update, context, query)
+				else:
+					await self.send_message("""Please enter a valid market id ("btcusdc").""", update, context, query)
+			elif data["place_limit_buy_order_step"] == "ask_amount":
+				if self.model.validate_order_amount(text):
+					data["place_limit_buy_order"]["amount"] = self.model.sanitize_order_amount(text)
+					data["place_limit_buy_order_step"] = "ask_price"
+					await self.send_message("Enter the price. Ex.: 123.4567", update, context, query)
+				else:
+					await self.send_message("Please enter a valid amount. Ex.: 123.4567", update, context, query)
+			elif data["place_limit_buy_order"] == "ask_price":
+				if self.model.validate_order_price(text):
+					data["place_limit_buy_order"]["price"] = self.model.sanitize_order_price(text)
+					data["place_limit_buy_order_step"] = "confirm"
+					formatted = self.model.beautify(data["place_limit_buy_order"])
+					await self.send_message(f"""Review your order and type "confirm" to place it or "cancel" to abort.\n\n{formatted}""", update, context, query)
+				else:
+					await self.send_message("Please enter a valid price. Ex.: 123.4567", update, context, query)
+			elif data["place_limit_buy_order_step"] == "confirm":
+				text = text.lower()
+				if text == "confirm":
+					try:
+						await self.place_order(update, context, query, data["place_limit_buy_order"])
+					finally:
+						data.clear()
+				elif text.lower() == "cancel":
+					data.clear()
+					await self.send_message("Order canceled.", update, context, query)
+				else:
+					await self.send_message("""Please type "confirm" to place the order or "cancel" to abort.""", update, context, query)
+		if "place_limit_sell_order_step" in data:
+			if data["place_limit_sell_order_step"] == "ask_market_id":
+				if self.model.validate_market_id(text):
+					data["place_limit_sell_order"]["market_id"] = self.model.sanitize_market_id(text)
+					data["place_limit_sell_order_step"] = "ask_amount"
+					await self.send_message("Enter the amount. Ex.: 123.4567", update, context, query)
+				else:
+					await self.send_message("""Please enter a valid market id ("btcusdc").""", update, context, query)
+			elif data["place_limit_sell_order_step"] == "ask_amount":
+				if self.model.validate_order_amount(text):
+					data["place_limit_sell_order"]["amount"] = self.model.sanitize_order_amount(text)
+					data["place_limit_sell_order_step"] = "ask_price"
+					await self.send_message("Enter the price. Ex.: 123.4567", update, context, query)
+				else:
+					await self.send_message("Please enter a valid amount. Ex.: 123.4567", update, context, query)
+			elif data["place_limit_sell_order"] == "ask_price":
+				if self.model.validate_order_price(text):
+					data["place_limit_sell_order"]["price"] = self.model.sanitize_order_price(text)
+					data["place_limit_sell_order_step"] = "confirm"
+					formatted = self.model.beautify(data["place_limit_sell_order"])
+					await self.send_message(f"""Review your order and type "confirm" to place it or "cancel" to abort.\n\n{formatted}""", update, context, query)
+				else:
+					await self.send_message("Please enter a valid price. Ex.: 123.4567", update, context, query)
+			elif data["place_limit_sell_order_step"] == "confirm":
+				text = text.lower()
+				if text == "confirm":
+					try:
+						await self.place_order(update, context, query, data["place_limit_sell_order"])
+					finally:
+						data.clear()
+				elif text.lower() == "cancel":
+					data.clear()
+					await self.send_message("Order canceled.", update, context, query)
+				else:
+					await self.send_message("""Please type "confirm" to place the order or "cancel" to abort.""", update, context, query)
 		if "place_order_step" in data:
 			if data["place_order_step"] == "ask_order_type":
 				if self.model.validate_order_type(text):
@@ -869,13 +1007,13 @@ class Model(object):
 			{
 				"ïd": item.get("id"),
 				"clientOrderId": item.get("clientOrderId"),
-				"datetime": item.get("datetime"),
 				"symbol": item.get("symbol"),
 				"type": item.get("type"),
 				"side": item.get("side"),
-				"price": item.get("price"),
 				"amount": item.get("amount"),
-				"filled": item.get("filled")
+				"price": item.get("price"),
+				"filled": item.get("filled"),
+				"datetime": item.get("datetime"),
 			} for item in response
 		]
 
@@ -884,19 +1022,18 @@ class Model(object):
 	async def market_buy_order(self, market_id: str, amount: float):
 		response = community_exchange.create_order(market_id, "market", "buy", amount)
 
-		output = [
-			{
-				"ïd": item.get("id"),
-				"clientOrderId": item.get("clientOrderId"),
-				"datetime": item.get("datetime"),
-				"symbol": item.get("symbol"),
-				"type": item.get("type"),
-				"side": item.get("side"),
-				"price": item.get("price"),
-				"amount": item.get("amount"),
-				"filled": item.get("filled")
-			} for item in response
-		]
+		output = {
+			"ïd": response.get("id"),
+			"clientOrderId": response.get("clientOrderId"),
+			"symbol": response.get("symbol"),
+			"type": response.get("type"),
+			"side": response.get("side"),
+			"amount": response.get("amount"),
+			"price": response.get("price"),
+			"filled": response.get("filled"),
+			"status": response.get("status"),
+			"datetime": response.get("datetime"),
+		}
 
 		return output
 
@@ -906,15 +1043,16 @@ class Model(object):
 		output = {
 			"ïd": response.get("id"),
 			"clientOrderId": response.get("clientOrderId"),
-			"datetime": response.get("datetime"),
 			"symbol": response.get("symbol"),
 			"type": response.get("type"),
 			"side": response.get("side"),
-			"price": response.get("price"),
 			"amount": response.get("amount"),
+			"price": response.get("price"),
 			"filled": response.get("filled"),
-			"status": response.get("status")
+			"status": response.get("status"),
+			"datetime": response.get("datetime"),
 		}
+
 		return output
 
 	async def limit_buy_order(self, market_id: str, amount: float, price: float):
@@ -923,14 +1061,14 @@ class Model(object):
 		output = {
 			"ïd": response.get("id"),
 			"clientOrderId": response.get("clientOrderId"),
-			"datetime": response.get("datetime"),
 			"symbol": response.get("symbol"),
 			"type": response.get("type"),
 			"side": response.get("side"),
-			"price": response.get("price"),
 			"amount": response.get("amount"),
+			"price": response.get("price"),
 			"filled": response.get("filled"),
-			"status": response.get("status")
+			"status": response.get("status"),
+			"datetime": response.get("datetime"),
 		}
 
 		return output
@@ -941,15 +1079,16 @@ class Model(object):
 		output = {
 			"ïd": response.get("id"),
 			"clientOrderId": response.get("clientOrderId"),
-			"datetime": response.get("datetime"),
 			"symbol": response.get("symbol"),
 			"type": response.get("type"),
 			"side": response.get("side"),
-			"price": response.get("price"),
 			"amount": response.get("amount"),
+			"price": response.get("price"),
 			"filled": response.get("filled"),
-			"status": response.get("status")
+			"status": response.get("status"),
+			"datetime": response.get("datetime"),
 		}
+
 		return output
 
 	async def place_order(self, market: str, order_type: OrderType, order_side: OrderSide, amount: float, price: float = None, stop_loss_price: float = None):
@@ -958,14 +1097,14 @@ class Model(object):
 		output = {
 			"ïd": response.get("id"),
 			"clientOrderId": response.get("clientOrderId"),
-			"datetime": response.get("datetime"),
 			"symbol": response.get("symbol"),
 			"type": response.get("type"),
 			"side": response.get("side"),
-			"price": response.get("price"),
 			"amount": response.get("amount"),
+			"price": response.get("price"),
 			"filled": response.get("filled"),
-			"status": response.get("status")
+			"status": response.get("status"),
+			"datetime": response.get("datetime"),
 		}
 
 		return output
@@ -1019,19 +1158,75 @@ class Model(object):
 		return result
 
 	def handle_magic_method_output(self, method, result):
-		if method == Operation.FETCH_ORDER:
-			output = {"id": result.get("id")}
-		elif method == Operation.FETCH_ORDERS:
-			output = {"id": result.get("id")}
-		elif method == Operation.FETCH_OPEN_ORDERS:
-			output = {"id": result.get("id")}
-		elif method == Operation.FETCH_ORDERS_ALL_MARKETS:
-			output = {"id": result.get("id")}
-		elif method == Operation.FETCH_CURRENCIES:
-			output = {"id": result.get("id")}
-		elif method == Operation.FETCH_MARKETS:
-			output = {"id": result.get("id")}
-		elif method == Operation.FETCH_TICKER.value:
+		if MagicMethod.is_equivalent(method, MagicMethod.CANCEL_ALL_ORDERS):
+			output = result
+
+			return output
+		elif MagicMethod.is_equivalent(method, MagicMethod.CANCEL_ORDER):
+			output = result
+
+			return output
+		elif MagicMethod.is_equivalent(method, MagicMethod.CREATE_ORDER):
+			output = result
+
+			return output
+		elif MagicMethod.is_equivalent(method, MagicMethod.DESCRIBE):
+			output = result
+
+			return output
+		elif MagicMethod.is_equivalent(method, MagicMethod.DEPOSIT):
+			output = result
+
+			return output
+		elif MagicMethod.is_equivalent(method, MagicMethod.FETCH_BALANCE):
+			output = result
+
+			return output
+		elif MagicMethod.is_equivalent(method, MagicMethod.FETCH_CLOSED_ORDERS):
+			output = result
+
+			return output
+		elif MagicMethod.is_equivalent(method, MagicMethod.FETCH_CURRENCIES):
+			output = result
+
+			return output
+		elif MagicMethod.is_equivalent(method, MagicMethod.FETCH_MARKETS):
+			output = result
+
+			return output
+		elif MagicMethod.is_equivalent(method, MagicMethod.FETCH_MY_TRADES):
+			output = result
+
+			return output
+		elif MagicMethod.is_equivalent(method, MagicMethod.FETCH_OHLCV):
+			output = result
+
+			return output
+		elif MagicMethod.is_equivalent(method, MagicMethod.FETCH_OPEN_ORDERS):
+			output = result
+
+			return output
+		elif MagicMethod.is_equivalent(method, MagicMethod.FETCH_ORDER):
+			output = result
+
+			return output
+		elif MagicMethod.is_equivalent(method, MagicMethod.FETCH_ORDER_BOOK):
+			output = result
+
+			return output
+		elif MagicMethod.is_equivalent(method, MagicMethod.FETCH_ORDERS):
+			output = result
+
+			return output
+		elif MagicMethod.is_equivalent(method, MagicMethod.FETCH_ORDERS_ALL_MARKETS):
+			output = result
+
+			return output
+		elif MagicMethod.is_equivalent(method, MagicMethod.FETCH_STATUS):
+			output = result
+
+			return output
+		elif MagicMethod.is_equivalent(method, MagicMethod.FETCH_TICKER):
 			output = {
 				"symbol": result.get("symbol"),
 				"datetime": result.get("datetime"),
@@ -1049,33 +1244,30 @@ class Model(object):
 				"quoteVolume": result.get("quoteVolume")
 
 			}
-		elif method == Operation.FETCH_TICKERS:
-			output = {"id": result.get("id")}
-		elif method == Operation.FETCH_ORDER_BOOK:
-			output = {"id": result.get("id")}
-		elif method == Operation.FETCH_TRADES:
-			output = {"id": result.get("id")}
-		elif method == Operation.FETCH_MY_TRADES:
-			output = {"id": result.get("id")}
-		elif method == Operation.FETCH_CLOSED_ORDERS:
-			output = {"id": result.get("id")}
-		elif method == Operation.FETCH_STATUS:
-			output = {"id": result.get("id")}
-		elif method == Operation.FETCH_BALANCE:
-			output = {"id": result.get("id")}
-		elif method == Operation.FETCH_BALANCES:
-			output = {"id": result.get("id")}
-		elif method == Operation.FETCH_TRADING_FEE:
-			output = {"id": result.get("id")}
-		elif method == Operation.FETCH_RAW_ORDER:
-			output = {"id": result.get("id")}
-		elif method == Operation.WITHDRAW:
-			output = {"id": result.get("id")}
-		elif method == Operation.FETCH_OHLCV:
-			output = {"id": result.get("id")}
+
+			return output
+		elif MagicMethod.is_equivalent(method, MagicMethod.FETCH_TICKERS):
+			output = result
+
+			return output
+		elif MagicMethod.is_equivalent(method, MagicMethod.FETCH_TRADES):
+			output = result
+
+			return output
+		elif MagicMethod.is_equivalent(method, MagicMethod.FETCH_TRADING_FEE):
+			output = result
+
+			return output
+		elif MagicMethod.is_equivalent(method, MagicMethod.SET_SANDBOX_MODE):
+			output = result
+
+			return output
+		elif MagicMethod.is_equivalent(method, MagicMethod.WITHDRAW):
+			output = result
+
+			return output
 		else:
-			output = {"id": result.get("id")}
-		return output
+			return result
 
 	def dump(self, target: Any):
 		try:
