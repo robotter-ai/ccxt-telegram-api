@@ -223,8 +223,8 @@ class Telegram(object):
 			context.user_data["place_market_buy_order_step"] = "ask_market_id"
 		elif data == "place_market_sell_order":
 			context.user_data["place_market_sell_order"] = {}
-			context.user_data["place_market_buy_order"]["order_type"] = "market"
-			context.user_data["place_market_buy_order"]["order_side"] = "sell"
+			context.user_data["place_market_sell_order"]["order_type"] = "market"
+			context.user_data["place_market_sell_order"]["order_side"] = "sell"
 			await self.send_message("Enter the market id. Ex: btcusdc", update, context, query)
 			context.user_data["place_market_sell_order_step"] = "ask_market_id"
 		elif data == "place_limit_buy_order":
@@ -293,7 +293,7 @@ class Telegram(object):
 				text = text.lower()
 				if text == "confirm":
 					try:
-						await self.place_order(update, context, query, data["place_market_buy_order"])
+						await self.market_buy_order(update, context, query, data["place_market_buy_order"])
 					finally:
 						data.clear()
 				elif text.lower() == "cancel":
@@ -321,7 +321,7 @@ class Telegram(object):
 				text = text.lower()
 				if text == "confirm":
 					try:
-						await self.place_order(update, context, query, data["place_market_sell_order"])
+						await self.market_sell_order(update, context, query, data["place_market_sell_order"])
 					finally:
 						data.clear()
 				elif text.lower() == "cancel":
@@ -344,7 +344,7 @@ class Telegram(object):
 					await self.send_message("Enter the price. Ex.: 123.4567", update, context, query)
 				else:
 					await self.send_message("Please enter a valid amount. Ex.: 123.4567", update, context, query)
-			elif data["place_limit_buy_order"] == "ask_price":
+			elif data["place_limit_buy_order_step"] == "ask_price":
 				if self.model.validate_order_price(text):
 					data["place_limit_buy_order"]["price"] = self.model.sanitize_order_price(text)
 					data["place_limit_buy_order_step"] = "confirm"
@@ -356,7 +356,7 @@ class Telegram(object):
 				text = text.lower()
 				if text == "confirm":
 					try:
-						await self.place_order(update, context, query, data["place_limit_buy_order"])
+						await self.limit_buy_order(update, context, query, data["place_limit_buy_order"])
 					finally:
 						data.clear()
 				elif text.lower() == "cancel":
@@ -379,7 +379,7 @@ class Telegram(object):
 					await self.send_message("Enter the price. Ex.: 123.4567", update, context, query)
 				else:
 					await self.send_message("Please enter a valid amount. Ex.: 123.4567", update, context, query)
-			elif data["place_limit_sell_order"] == "ask_price":
+			elif data["place_limit_sell_order_step"] == "ask_price":
 				if self.model.validate_order_price(text):
 					data["place_limit_sell_order"]["price"] = self.model.sanitize_order_price(text)
 					data["place_limit_sell_order_step"] = "confirm"
@@ -391,7 +391,7 @@ class Telegram(object):
 				text = text.lower()
 				if text == "confirm":
 					try:
-						await self.place_order(update, context, query, data["place_limit_sell_order"])
+						await self.limit_sell_order(update, context, query, data["place_limit_sell_order"])
 					finally:
 						data.clear()
 				elif text.lower() == "cancel":
@@ -575,7 +575,7 @@ class Telegram(object):
 						*- /placeOrder* `<limit/market> <buy/sell> <marketId> <amount> <price>`
 					
 					*🔧 Advanced Commands:*
-						With this special command you can theoretically try any available CCXT command. Some examples are:
+						With this special command you can theoretically try any available CCXT command.
 						
 						*- /anyCCXTMethod* `<arg1Value> <arg2Name>=<arg2Value>`
 						
@@ -1005,7 +1005,7 @@ class Model(object):
 
 		output = [
 			{
-				"ïd": item.get("id"),
+				"id": item.get("id"),
 				"clientOrderId": item.get("clientOrderId"),
 				"symbol": item.get("symbol"),
 				"type": item.get("type"),
@@ -1023,14 +1023,12 @@ class Model(object):
 		response = community_exchange.create_order(market_id, "market", "buy", amount)
 
 		output = {
-			"ïd": response.get("id"),
+			"id": response.get("id"),
 			"clientOrderId": response.get("clientOrderId"),
 			"symbol": response.get("symbol"),
 			"type": response.get("type"),
 			"side": response.get("side"),
 			"amount": response.get("amount"),
-			"price": response.get("price"),
-			"filled": response.get("filled"),
 			"status": response.get("status"),
 			"datetime": response.get("datetime"),
 		}
@@ -1041,14 +1039,12 @@ class Model(object):
 		response = community_exchange.create_order(market_id, "market", "sell", amount)
 
 		output = {
-			"ïd": response.get("id"),
+			"id": response.get("id"),
 			"clientOrderId": response.get("clientOrderId"),
 			"symbol": response.get("symbol"),
 			"type": response.get("type"),
 			"side": response.get("side"),
 			"amount": response.get("amount"),
-			"price": response.get("price"),
-			"filled": response.get("filled"),
 			"status": response.get("status"),
 			"datetime": response.get("datetime"),
 		}
@@ -1059,7 +1055,7 @@ class Model(object):
 		response = community_exchange.create_order(market_id, "limit", "buy", amount, price)
 
 		output = {
-			"ïd": response.get("id"),
+			"id": response.get("id"),
 			"clientOrderId": response.get("clientOrderId"),
 			"symbol": response.get("symbol"),
 			"type": response.get("type"),
@@ -1077,7 +1073,7 @@ class Model(object):
 		response = community_exchange.create_order(market_id, "limit", "sell", amount, price)
 
 		output = {
-			"ïd": response.get("id"),
+			"id": response.get("id"),
 			"clientOrderId": response.get("clientOrderId"),
 			"symbol": response.get("symbol"),
 			"type": response.get("type"),
@@ -1095,7 +1091,7 @@ class Model(object):
 		response = community_exchange.create_order(market, order_type, order_side, amount, price)
 
 		output = {
-			"ïd": response.get("id"),
+			"id": response.get("id"),
 			"clientOrderId": response.get("clientOrderId"),
 			"symbol": response.get("symbol"),
 			"type": response.get("type"),
