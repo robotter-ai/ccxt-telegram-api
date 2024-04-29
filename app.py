@@ -177,7 +177,7 @@ class Telegram(object):
 
 		self.application.add_handler(CallbackQueryHandler(self.button_handler))
 		self.application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, self.text_handler))
-		self.application.add_handler(MessageHandler(filters.COMMAND, self.magic_command_handler))
+		self.application.add_handler(MessageHandler(filters.COMMAND, self.handle_magic_command_input))
 
 	def run(self):
 		if TELEGRAM_LISTEN_COMMANDS:
@@ -458,7 +458,7 @@ class Telegram(object):
 				else:
 					await self.send_message("""Please type "confirm" to place the order or "cancel" to abort.""", update, context, query)
 
-	async def magic_command_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE, query: CallbackQuery = None, data: Any = None):
+	async def handle_magic_command_input(self, update: Update, context: ContextTypes.DEFAULT_TYPE, query: CallbackQuery = None, data: Any = None):
 		if not await self.validate_request(update, context):
 			return
 
@@ -493,13 +493,13 @@ class Telegram(object):
 			return
 
 		command_buttons = [
-			[InlineKeyboardButton("Get a Token Balance", callback_data="balance")],
+			# [InlineKeyboardButton("Get a Token Balance", callback_data="balance")],
 			[InlineKeyboardButton("Get All Balances", callback_data="balances")],
 			[InlineKeyboardButton("Get All Open Orders from a Market", callback_data="open_orders")],
-			[InlineKeyboardButton("Place a Market Buy Order", callback_data="place_market_buy_order")],
-			[InlineKeyboardButton("Place a Market Sell Order", callback_data="place_market_sell_order")],
-			[InlineKeyboardButton("Place a Limit Buy Order", callback_data="place_limit_buy_order")],
-			[InlineKeyboardButton("Place a Limit Sell Order", callback_data="place_limit_sell_order")],
+			# [InlineKeyboardButton("Place a Market Buy Order", callback_data="place_market_buy_order")],
+			# [InlineKeyboardButton("Place a Market Sell Order", callback_data="place_market_sell_order")],
+			# [InlineKeyboardButton("Place a Limit Buy Order", callback_data="place_limit_buy_order")],
+			# [InlineKeyboardButton("Place a Limit Sell Order", callback_data="place_limit_sell_order")],
 			[InlineKeyboardButton("Place a Custom Order", callback_data="place_order")],
 		]
 		reply_markup = InlineKeyboardMarkup(command_buttons)
@@ -509,29 +509,18 @@ class Telegram(object):
 				f"""
 					*🤖 Welcome to {str(EXCHANGE_ID).upper()} Trading Bot! 📈*
 					
-										*Available commands:*
+					*Available commands:*
 					
 					*/help*
 					
 					*/balances*
 					
-					*/balance* `<tokenId>`
-					
 					*/openOrders* `<marketId>`
-					
-					*/placeMarketBuyOrder* `<marketId> <amount>`
-					
-					*/placeMarketSellOrder* `<marketId> <amount>`
-					
-					*/placeLimitBuyOrder* `<marketId> <amount> <price>`
-					
-					*/placeLimitSellOrder* `<marketId> <amount> <price>`
 					
 					*/placeOrder* `<limit/market> <buy/sell> <marketId> <amount> <price>`
 					
 					
-								*Type /help to get more information.
-								Feel free to explore and trade safely!* 🚀
+					*Type /help to get more information and more advanced commands. Feel free to explore and trade safely!* 🚀
 				"""
 			),
 			update,
@@ -577,14 +566,28 @@ class Telegram(object):
 						*- /placeOrder* `<limit/market> <buy/sell> <marketId> <amount> <price>`
 					
 					*🔧 Advanced Commands:*
-						With this special command you can theoretically try any available CCXT command.
+						With this special command you can theoretically try any available CCXT command. (Note that is also possible use named arguments.)
 						
 						*- /anyCCXTMethod* `<arg1Value> <arg2Name>=<arg2Value>`
 						
 						Examples:
-						
-						*/fetchTicker* `btcusdc`
-						*/fetchTicker* `symbol=btcusdc`
+					
+						*/cancelAllOrders*
+						*/cancelOrder* `<orderId> <marketId>`
+						*/describe*	
+						*/fetchBalance*
+						*/fetchCurrencies*
+						*/fetchMarkets*
+						*/fetchOHLCV* `<marketId>`
+						*/fetchOpenOrders* `<marketId>`
+						*/fetchOrder* `<orderId> <marketId>`
+						*/fetchOrderBook*
+						*/fetchOrders* `<marketId>`
+						*/fetchStatus*
+						*/fetchTicker* `<marketId>`
+						*/fetchTickers*
+						*/fetchTradingFee* `<marketId>`
+						*/setSandboxMode* `<true/false>`
 					
 					*Type /start for the menu.*
 					*Feel free to explore and trade safely!* 🚀
@@ -1114,7 +1117,7 @@ class Model(object):
 			@async_handle_exceptions
 			async def method(*args, **kwargs):
 				result = attribute(*args, **kwargs)
-				output = self.handle_magic_method_output(
+				output = self.handle_magic_command_output(
 					method_name,
 					result
 				)
@@ -1126,7 +1129,9 @@ class Model(object):
 		return attribute
 
 	def beautify(self, target: Any, indent=0) -> str:
-		if isinstance(target, dict):
+		if target is None:
+			result = "  " * indent + "<empty result>" + "\n"
+		elif isinstance(target, dict):
 			result = ""
 			for key, value in target.items():
 				result += "  " * indent + str(key) + ":"
@@ -1147,15 +1152,15 @@ class Model(object):
 
 		if str(result).strip() == "":
 			if isinstance(target, dict):
-				result = "{}"
+				result = "<empty result>\n"
 			elif isinstance(target, list):
-				result = "[]"
+				result = "<empty list>\n"
 			else:
-				result = "<empty>"
+				result = "<empty result>\n"
 
 		return result
 
-	def handle_magic_method_output(self, method, response):
+	def handle_magic_command_output(self, method, response):
 		if MagicMethod.is_equivalent(method, MagicMethod.CANCEL_ALL_ORDERS):
 			output = response
 
@@ -1181,7 +1186,8 @@ class Model(object):
 		elif MagicMethod.is_equivalent(method, MagicMethod.FETCH_BALANCE):
 			output = response
 
-			del output["info"]
+			if output.get("info"):
+				del output["info"]
 
 			return output
 		elif MagicMethod.is_equivalent(method, MagicMethod.FETCH_CLOSED_ORDERS):
@@ -1241,7 +1247,9 @@ class Model(object):
 
 			return output
 		elif MagicMethod.is_equivalent(method, MagicMethod.FETCH_STATUS):
-			output = response
+			output = {
+				"status": response.get("status"),
+			}
 
 			return output
 		elif MagicMethod.is_equivalent(method, MagicMethod.FETCH_TICKER):
@@ -1290,6 +1298,9 @@ class Model(object):
 			return output
 		elif MagicMethod.is_equivalent(method, MagicMethod.FETCH_TRADING_FEE):
 			output = response
+
+			if output.get("info"):
+				del output["info"]
 
 			return output
 		elif MagicMethod.is_equivalent(method, MagicMethod.SET_SANDBOX_MODE):
