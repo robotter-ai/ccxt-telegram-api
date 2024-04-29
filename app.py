@@ -1,3 +1,5 @@
+import json
+
 import re
 
 import asyncio
@@ -1153,117 +1155,153 @@ class Model(object):
 
 		return result
 
-	def handle_magic_method_output(self, method, result):
+	def handle_magic_method_output(self, method, response):
 		if MagicMethod.is_equivalent(method, MagicMethod.CANCEL_ALL_ORDERS):
-			output = result
+			output = response
 
 			return output
 		elif MagicMethod.is_equivalent(method, MagicMethod.CANCEL_ORDER):
-			output = result
+			output = response
 
 			return output
 		elif MagicMethod.is_equivalent(method, MagicMethod.CREATE_ORDER):
-			output = result
+			output = response
 
 			return output
 		elif MagicMethod.is_equivalent(method, MagicMethod.DESCRIBE):
-			output = result
+			output = response
+			output['apiKey'] = "****"
+			output['secret'] = "****"
 
 			return output
 		elif MagicMethod.is_equivalent(method, MagicMethod.DEPOSIT):
-			output = result
+			output = response
 
 			return output
 		elif MagicMethod.is_equivalent(method, MagicMethod.FETCH_BALANCE):
-			output = result
+			output = response
+
+			del output["info"]
 
 			return output
 		elif MagicMethod.is_equivalent(method, MagicMethod.FETCH_CLOSED_ORDERS):
-			output = result
+			output = response
 
 			return output
 		elif MagicMethod.is_equivalent(method, MagicMethod.FETCH_CURRENCIES):
-			output = result
+			output = {
+				key: {
+					"id": value.get("id"),
+					"numericId": value.get("numericId"),
+					"code": value.get("code"),
+					"precision": value.get("precision"),
+					"type": value.get("type"),
+					"name": value.get("name"),
+					"active": value.get("active"),
+				} for key, value in response.items()
+			}
 
 			return output
 		elif MagicMethod.is_equivalent(method, MagicMethod.FETCH_MARKETS):
-			output = result
+			output = [
+				{
+					"symbol": item.get("symbol"),
+					"base": item.get("base"),
+					"quote": item.get("quote"),
+				} for item in response
+			]
 
 			return output
 		elif MagicMethod.is_equivalent(method, MagicMethod.FETCH_MY_TRADES):
-			output = result
+			output = response
 
 			return output
 		elif MagicMethod.is_equivalent(method, MagicMethod.FETCH_OHLCV):
-			output = result
+			output = response
 
 			return output
 		elif MagicMethod.is_equivalent(method, MagicMethod.FETCH_OPEN_ORDERS):
-			output = result
+			output = response
 
 			return output
 		elif MagicMethod.is_equivalent(method, MagicMethod.FETCH_ORDER):
-			output = result
+			output = response
 
 			return output
 		elif MagicMethod.is_equivalent(method, MagicMethod.FETCH_ORDER_BOOK):
-			output = result
+			output = response
 
 			return output
 		elif MagicMethod.is_equivalent(method, MagicMethod.FETCH_ORDERS):
-			output = result
+			output = response
 
 			return output
 		elif MagicMethod.is_equivalent(method, MagicMethod.FETCH_ORDERS_ALL_MARKETS):
-			output = result
+			output = response
 
 			return output
 		elif MagicMethod.is_equivalent(method, MagicMethod.FETCH_STATUS):
-			output = result
+			output = response
 
 			return output
 		elif MagicMethod.is_equivalent(method, MagicMethod.FETCH_TICKER):
 			output = {
-				"symbol": result.get("symbol"),
-				"datetime": result.get("datetime"),
-				"high": result.get("high"),
-				"low": result.get("low"),
-				"bid": result.get("bid"),
-				"ask": result.get("ask"),
-				"open": result.get("open"),
-				"close": result.get("close"),
-				"last": result.get("last"),
-				"change": result.get("change"),
-				"percentage": result.get("percentage"),
-				"average": result.get("average"),
-				"baseVolume": result.get("baseVolume"),
-				"quoteVolume": result.get("quoteVolume")
-
+				"symbol": response.get("symbol"),
+				"datetime": response.get("datetime"),
+				"last": response.get("last"),
+				"open": response.get("open"),
+				"high": response.get("high"),
+				"low": response.get("low"),
+				"close": response.get("close"),
+				"bid": response.get("bid"),
+				"ask": response.get("ask"),
+				"change": response.get("change"),
+				"percentage": response.get("percentage"),
+				"average": response.get("average"),
+				"baseVolume": response.get("baseVolume"),
+				"quoteVolume": response.get("quoteVolume")
 			}
 
 			return output
 		elif MagicMethod.is_equivalent(method, MagicMethod.FETCH_TICKERS):
-			output = result
+			output = {
+				key: {
+					"symbol": value.get("symbol"),
+					"datetime": value.get("datetime"),
+					"last": value.get("last"),
+					"open": value.get("open"),
+					"high": value.get("high"),
+					"low": value.get("low"),
+					"close": value.get("close"),
+					"bid": value.get("bid"),
+					"ask": value.get("ask"),
+					"change": value.get("change"),
+					"percentage": value.get("percentage"),
+					"average": value.get("average"),
+					"baseVolume": value.get("baseVolume"),
+					"quoteVolume": value.get("quoteVolume")
+				} for key, value in response.items()
+			}
 
 			return output
 		elif MagicMethod.is_equivalent(method, MagicMethod.FETCH_TRADES):
-			output = result
+			output = response
 
 			return output
 		elif MagicMethod.is_equivalent(method, MagicMethod.FETCH_TRADING_FEE):
-			output = result
+			output = response
 
 			return output
 		elif MagicMethod.is_equivalent(method, MagicMethod.SET_SANDBOX_MODE):
-			output = result
+			output = response
 
 			return output
 		elif MagicMethod.is_equivalent(method, MagicMethod.WITHDRAW):
-			output = result
+			output = response
 
 			return output
 		else:
-			return result
+			return response
 
 	def dump(self, target: Any):
 		try:
@@ -1274,7 +1312,7 @@ class Model(object):
 				target = target.toDict()
 
 			if isinstance(target, Dict):
-				return str(target)
+				return json.dumps(target, indent=2)
 
 			return jsonpickle.encode(target, unpicklable=True, indent=2)
 		except (Exception,):
