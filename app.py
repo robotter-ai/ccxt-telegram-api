@@ -185,7 +185,9 @@ class Telegram(object):
 
 	# noinspection PyMethodMayBeStatic
 	def is_admin(self, username) -> bool:
-		if TELEGRAM_ADMIN_USERNAMES and isinstance(TELEGRAM_ADMIN_USERNAMES, List):
+		if TELEGRAM_ADMIN_USERNAMES is None or TELEGRAM_ADMIN_USERNAMES == "" or len(TELEGRAM_ADMIN_USERNAMES) == 0:
+			return True
+		elif TELEGRAM_ADMIN_USERNAMES and isinstance(TELEGRAM_ADMIN_USERNAMES, List):
 			return username in TELEGRAM_ADMIN_USERNAMES
 
 		return False
