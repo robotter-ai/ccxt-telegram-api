@@ -119,7 +119,7 @@ def sync_handle_exceptions(method):
 					)
 				)
 			except Exception as telegram_exception:
-				logging.debug(traceback.format_exception(telegram_exception))
+				logging.error(traceback.format_exception(telegram_exception))
 
 			raise
 
@@ -127,6 +127,7 @@ def sync_handle_exceptions(method):
 
 
 def async_handle_exceptions(method):
+
 	@wraps(method)
 	async def wrapper(*args, **kwargs):
 		try:
@@ -135,7 +136,7 @@ def async_handle_exceptions(method):
 			try:
 				await Telegram.instance().send_message(str(exception))
 			except Exception as telegram_exception:
-				logging.debug(traceback.format_exception(telegram_exception))
+				logging.error(traceback.format_exception(telegram_exception))
 
 			raise
 
@@ -143,12 +144,22 @@ def async_handle_exceptions(method):
 
 
 def handle_exceptions(cls):
-	for attr, method in cls.__dict__.items():
-		if callable(method):
+	is_singleton = 'instance' in cls.__dict__
+
+	original_instance_method = None
+
+	if is_singleton:
+		original_instance_method = cls.instance
+
+	for attr, method in list(cls.__dict__.items()):
+		if callable(method) and method != original_instance_method:
 			if asyncio.iscoroutinefunction(method):
 				setattr(cls, attr, async_handle_exceptions(method))
 			else:
 				setattr(cls, attr, sync_handle_exceptions(method))
+
+	if is_singleton and original_instance_method:
+		cls.instance = staticmethod(sync_handle_exceptions(original_instance_method))
 
 	return cls
 
@@ -479,6 +490,8 @@ class Telegram(object):
 			else:
 				positional_args.append(self.parse_argument(token))
 
+		command = self.camel_to_snake(command)
+
 		method = getattr(self.model, command, None)
 
 		if not method:
@@ -490,6 +503,17 @@ class Telegram(object):
 		message = self.model.beautify(message)
 
 		await self.send_message(message, update, context, query)
+
+	# noinspection PyMethodMayBeStatic
+	def camel_to_snake(self, target: str):
+		result = [target[0].lower()]
+		for char in target[1:]:
+			if char.isupper():
+				result.append('_' + char.lower())
+			else:
+				result.append(char)
+
+		return ''.join(result)
 
 	# noinspection PyMethodMayBeStatic
 	def parse_argument(self, arg):
@@ -1132,7 +1156,6 @@ class Model(object):
 		attribute = getattr(community_exchange, method_name, None)
 
 		if callable(attribute):
-			@async_handle_exceptions
 			async def method(*args, **kwargs):
 				result = attribute(*args, **kwargs)
 				output = self.handle_magic_command_output(
