@@ -1156,6 +1156,7 @@ class Model(object):
 		attribute = getattr(community_exchange, method_name, None)
 
 		if callable(attribute):
+			@async_handle_exceptions
 			async def method(*args, **kwargs):
 				result = attribute(*args, **kwargs)
 				output = self.handle_magic_command_output(
