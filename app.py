@@ -507,11 +507,19 @@ class Telegram(object):
 	# noinspection PyMethodMayBeStatic
 	def camel_to_snake(self, target: str):
 		result = [target[0].lower()]
-		for char in target[1:]:
-			if char.isupper():
-				result.append('_' + char.lower())
+		i = 1
+		while i < len(target):
+			if target[i].isupper():
+				if (i + 1 < len(target) and target[i + 1].isupper()) or (i + 1 == len(target)):
+					start = i
+					while i + 1 < len(target) and target[i + 1].isupper():
+						i += 1
+					result.append('_' + target[start:i+1].lower())
+				else:
+					result.append('_' + target[i].lower())
 			else:
-				result.append(char)
+				result.append(target[i])
+			i += 1
 
 		return ''.join(result)
 
