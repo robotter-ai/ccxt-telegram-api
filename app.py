@@ -176,18 +176,44 @@ class Telegram(object):
 		self.application = Application.builder().token(TELEGRAM_TOKEN).build()
 
 		commands = [
-			BotCommand("start", "Starts the bot"),
-			BotCommand("help", "Provides help information"),
-			BotCommand("balance", "Get your balance"),
-			BotCommand("balances", "Get all balances"),
-			BotCommand("openorders", "Get open orders"),
-			BotCommand("placemarketbuyorder", "Place a market buy order"),
-			BotCommand("placemarketsellorder", "Place a market sell order"),
-			BotCommand("placelimitbuyorder", "Place a limit buy order"),
-			BotCommand("placelimitsellorder", "Place a limit sell order"),
-			BotCommand("placeorder", "Place a custom order")
-		]
+			BotCommand("start", "| Starts the bot"),
+			BotCommand("help", "| Provides help information"),
+			BotCommand("balance", "<tokenId> | Get your balance"),
+			BotCommand("balances", "| Get all balances"),
+			BotCommand("openorders", "<marketId> | Get open orders"),
+			BotCommand("placemarketbuyorder", "<marketId> <amount> | Place a market buy order"),
+			BotCommand("placemarketsellorder", "<marketId> <amount> | Place a market sell order"),
+			BotCommand("placelimitbuyorder", "<marketId> <amount> <price> | Place a limit buy order"),
+			BotCommand("placelimitsellorder", "<marketId> <amount> <price> | Place a limit sell order"),
+			BotCommand("placeorder", "<limit/market> <buy/sell> <marketId> <amount> <price> | Place a custom order"),
 
+			# BotCommand("cancel_all_orders", "<marketId> | Cancel all open orders from a market"),
+			# BotCommand("cancel_order", "<orderId or clientOrderId> | Cancel a specific order from a market"),
+			# BotCommand("create_order", "<marketId> <limit/market> <buy/sell> <amount> <price> | Place an order"),
+			# BotCommand("describe", "| Bring all information about the exchange"),
+			# BotCommand("fetch_balance", "| Fetch all balances from the user"),
+			# BotCommand("fetch_closed_orders", "<marketId> | Fetch all closed orders from a market"),
+			# BotCommand("fetch_currencies", "| Fetch all currencies"),
+			# BotCommand("fetch_deposit", "<depositId> | Fetch a specific deposit from the user"),
+			# BotCommand("fetch_deposits", "<currencyId> | Fetch all deposits from the user for a specific currency"),
+			# BotCommand("fetch_markets", "| Fetch all markets"),
+			# BotCommand("fetch_my_trades", "<marketId> | Fetch all user trades from a market"),
+			# BotCommand("fetch_ohlcv", "<marketId> | Fetch the OHLCV (open, high, low, close, volume) from a market"),
+			# BotCommand("fetch_open_orders", "<marketId> | Fetch all open orders from a market"),
+			# BotCommand("fetch_order", "<orderId or clientOrderId> | Fetch a specific order from a market"),
+			# BotCommand("fetch_order_book", "<marketId> | Fetch the order book from a market"),
+			# BotCommand("fetch_orders", "<marketId> | Fetch all orders from a market"),
+			# BotCommand("fetch_orders_all_markets", "| Fetch all orders from all markets"),
+			# BotCommand("fetch_status", "| Bring the status of the exchange"),
+			# BotCommand("fetch_ticker", "<marketId> | Fetch the ticker from a market"),
+			# BotCommand("fetch_tickers", "| Fetch the tickers from all markets"),
+			# BotCommand("fetch_trades", "<marketId> | Fetch all trades from a market"),
+			# BotCommand("fetch_trading_fee", "<marketId> | Fetch the trading fee from a market"),
+			# BotCommand("fetch_withdrawal", "<withdrawId> | Fetch a specific withdraw from the user"),
+			# BotCommand("fetch_withdrawals", "<currencyId> | Fetch all withdraws from the user for a specific currency"),
+			# BotCommand("set_sandbox_mode", "<true/false> | Enable or disable the sandbox mode"),
+			# BotCommand("withdraw", "<currencyId> <amount> <destinationAddress> <tag>| Withdraw funds from a currency to an address"),
+		]
 		await self.application.bot.set_my_commands(commands)
 
 		self.application.add_handler(CommandHandler("start", self.start))
