@@ -35,14 +35,14 @@ logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s
 
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_CHANNEL_ID = os.getenv("TELEGRAM_CHANNEL_ID")
-TELEGRAM_LISTEN_COMMANDS: bool = os.getenv("TELEGRAM_LISTEN_COMMANDS", "false").lower() in ["true", "1"]
+TELEGRAM_LISTEN_COMMANDS: bool = os.getenv("TELEGRAM_LISTEN_COMMANDS", "true").lower() in ["true", "1"]
 
 administrator = os.getenv("TELEGRAM_ADMIN_USERNAME", "").strip().replace("@", "")
 administrators = os.getenv("TELEGRAM_ADMIN_USERNAMES", "").split(",")
 administrators = [username.strip().replace("@", "") for username in administrators if username.strip()]
 TELEGRAM_ADMIN_USERNAMES = [administrator] + administrators if administrator else administrators
 
-EXCHANGE_ID = os.getenv("EXCHANGE_ID", "binance")
+EXCHANGE_ID = os.getenv("EXCHANGE_ID", "cube")
 EXCHANGE_API_KEY = os.getenv("EXCHANGE_API_KEY")
 EXCHANGE_API_SECRET = os.getenv("EXCHANGE_API_SECRET")
 EXCHANGE_ENVIRONMENT = os.getenv("EXCHANGE_ENVIRONMENT", "production")
