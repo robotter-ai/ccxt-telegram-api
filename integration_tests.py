@@ -87,6 +87,14 @@ class IntegrationTests:
 			# print(await self.model.fetch_markets())
 			# print(await self.model.fetch_balance())
 			# print(await self.model.fetch_ticker("BTCUSDT"))
+			# print(await self.model.fetch_tickers())
+			# print(await self.model.fetch_orders("BTCUSDT"))
+			# print(await self.model.fetch_currencies())
+			# print(await self.model.cancel_all_orders("BTCUSDT"))
+			# print(await self.model.create_order("BTCUSDT", "market", "buy", 0.0001))
+			# print(await self.model.fetch_closed_orders("BTCUSDT"))
+			# print(await self.model.fetch_currencies())
+			# print(await self.model.fetch_balance())
 
 			# await self.place_order(None, None, {
 			# 	"type": "market",

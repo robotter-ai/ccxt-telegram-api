@@ -1060,15 +1060,35 @@ class Model(object):
 
 		output = [
 			{
+
 				"id": item.get("id"),
 				"clientOrderId": item.get("clientOrderId"),
+				"timestamp": item.get("timestamp"),
+				"lastTradeTimestamp": item.get("lastTradeTimestamp"),
+				"status": item.get("status"),
 				"symbol": item.get("symbol"),
 				"type": item.get("type"),
+				"timeInForce": item.get("timeInForce"),
 				"side": item.get("side"),
-				"amount": item.get("amount"),
 				"price": item.get("price"),
+				"average": item.get("average"),
+				"amount": item.get("amount"),
 				"filled": item.get("filled"),
+				"remaining": item.get("remaining"),
+				"cost": item.get("cost"),
+				# "trades": item.get("trades"),
 				"datetime": item.get("datetime"),
+				"fee": item.get("fee"),
+				# "info": item.get("info"),
+				# "fees": item.get("fees"),
+				"lastUpdateTimestamp": item.get("lastUpdateTimestamp"),
+				"postOnly": item.get("postOnly"),
+				"reduceOnly": item.get("reduceOnly"),
+				"stopPrice": item.get("stopPrice"),
+				"triggerPrice": item.get("triggerPrice"),
+				"takeProfitPrice": item.get("takeProfitPrice"),
+				"stopLossPrice": item.get("stopLossPrice")
+
 			} for item in response
 		]
 
@@ -1078,14 +1098,33 @@ class Model(object):
 		response = community_exchange.create_order(market_id, "market", "buy", amount)
 
 		output = {
-			"id": response.get("id"),
-			"clientOrderId": response.get("clientOrderId"),
-			"symbol": response.get("symbol"),
-			"type": response.get("type"),
-			"side": response.get("side"),
-			"amount": response.get("amount"),
-			"status": response.get("status"),
-			"datetime": response.get("datetime"),
+			'id': response.get("id"),
+			'clientOrderId': response.get("clientOrderId"),
+			'symbol': response.get("symbol"),
+			'type': response.get("type"),
+			'side': response.get("side"),
+			'amount': response.get("amount"),
+			'price': response.get("price"),
+			'filled': response.get("filled"),
+			'status': response.get("status"),
+			'datetime': response.get("datetime"),
+			'timestamp': response.get('timestamp'),
+			'lastTradeTimestamp': response.get('lastTradeTimestamp'),
+			'timeInForce': response.get('timeInForce'),
+			'average': response.get('average'),
+			'remaining': response.get('remaining'),
+			'cost': response.get('cost'),
+			'trades': response.get('trades'),
+			'fee': response.get('fee'),
+			# 'fees': response.get('fees'),
+			# 'info': response.get('info'),
+			'lastUpdateTimestamp': response.get('lastUpdateTimestamp'),
+			'postOnly': response.get('postOnly'),
+			'reduceOnly': response.get('reduceOnly'),
+			'stopPrice': response.get('stopPrice'),
+			'triggerPrice': response.get('triggerPrice'),
+			'takeProfitPrice': response.get('takeProfitPrice'),
+			'stopLossPrice': response.get('stopLossPrice'),
 		}
 
 		return output
@@ -1094,14 +1133,33 @@ class Model(object):
 		response = community_exchange.create_order(market_id, "market", "sell", amount)
 
 		output = {
-			"id": response.get("id"),
-			"clientOrderId": response.get("clientOrderId"),
-			"symbol": response.get("symbol"),
-			"type": response.get("type"),
-			"side": response.get("side"),
-			"amount": response.get("amount"),
-			"status": response.get("status"),
-			"datetime": response.get("datetime"),
+			'id': response.get("id"),
+			'clientOrderId': response.get("clientOrderId"),
+			'symbol': response.get("symbol"),
+			'type': response.get("type"),
+			'side': response.get("side"),
+			'amount': response.get("amount"),
+			'price': response.get("price"),
+			'filled': response.get("filled"),
+			'status': response.get("status"),
+			'datetime': response.get("datetime"),
+			'timestamp': response.get('timestamp'),
+			'lastTradeTimestamp': response.get('lastTradeTimestamp'),
+			'timeInForce': response.get('timeInForce'),
+			'average': response.get('average'),
+			'remaining': response.get('remaining'),
+			'cost': response.get('cost'),
+			'trades': response.get('trades'),
+			'fee': response.get('fee'),
+			# 'fees': response.get('fees'),
+			# 'info': response.get('info'),
+			'lastUpdateTimestamp': response.get('lastUpdateTimestamp'),
+			'postOnly': response.get('postOnly'),
+			'reduceOnly': response.get('reduceOnly'),
+			'stopPrice': response.get('stopPrice'),
+			'triggerPrice': response.get('triggerPrice'),
+			'takeProfitPrice': response.get('takeProfitPrice'),
+			'stopLossPrice': response.get('stopLossPrice'),
 		}
 
 		return output
@@ -1110,16 +1168,33 @@ class Model(object):
 		response = community_exchange.create_order(market_id, "limit", "buy", amount, price)
 
 		output = {
-			"id": response.get("id"),
-			"clientOrderId": response.get("clientOrderId"),
-			"symbol": response.get("symbol"),
-			"type": response.get("type"),
-			"side": response.get("side"),
-			"amount": response.get("amount"),
-			"price": response.get("price"),
-			"filled": response.get("filled"),
-			"status": response.get("status"),
-			"datetime": response.get("datetime"),
+			'id': response.get("id"),
+			'clientOrderId': response.get("clientOrderId"),
+			'symbol': response.get("symbol"),
+			'type': response.get("type"),
+			'side': response.get("side"),
+			'amount': response.get("amount"),
+			'price': response.get("price"),
+			'filled': response.get("filled"),
+			'status': response.get("status"),
+			'datetime': response.get("datetime"),
+			'timestamp': response.get('timestamp'),
+			'lastTradeTimestamp': response.get('lastTradeTimestamp'),
+			'timeInForce': response.get('timeInForce'),
+			'average': response.get('average'),
+			'remaining': response.get('remaining'),
+			'cost': response.get('cost'),
+			'trades': response.get('trades'),
+			'fee': response.get('fee'),
+			# 'fees': response.get('fees'),
+			# 'info': response.get('info'),
+			'lastUpdateTimestamp': response.get('lastUpdateTimestamp'),
+			'postOnly': response.get('postOnly'),
+			'reduceOnly': response.get('reduceOnly'),
+			'stopPrice': response.get('stopPrice'),
+			'triggerPrice': response.get('triggerPrice'),
+			'takeProfitPrice': response.get('takeProfitPrice'),
+			'stopLossPrice': response.get('stopLossPrice'),
 		}
 
 		return output
@@ -1128,35 +1203,71 @@ class Model(object):
 		response = community_exchange.create_order(market_id, "limit", "sell", amount, price)
 
 		output = {
-			"id": response.get("id"),
-			"clientOrderId": response.get("clientOrderId"),
-			"symbol": response.get("symbol"),
-			"type": response.get("type"),
-			"side": response.get("side"),
-			"amount": response.get("amount"),
-			"price": response.get("price"),
-			"filled": response.get("filled"),
-			"status": response.get("status"),
-			"datetime": response.get("datetime"),
+			'id': response.get("id"),
+			'clientOrderId': response.get("clientOrderId"),
+			'symbol': response.get("symbol"),
+			'type': response.get("type"),
+			'side': response.get("side"),
+			'amount': response.get("amount"),
+			'price': response.get("price"),
+			'filled': response.get("filled"),
+			'status': response.get("status"),
+			'datetime': response.get("datetime"),
+			'timestamp': response.get('timestamp'),
+			'lastTradeTimestamp': response.get('lastTradeTimestamp'),
+			'timeInForce': response.get('timeInForce'),
+			'average': response.get('average'),
+			'remaining': response.get('remaining'),
+			'cost': response.get('cost'),
+			'trades': response.get('trades'),
+			'fee': response.get('fee'),
+			# 'fees': response.get('fees'),
+			# 'info': response.get('info'),
+			'lastUpdateTimestamp': response.get('lastUpdateTimestamp'),
+			'postOnly': response.get('postOnly'),
+			'reduceOnly': response.get('reduceOnly'),
+			'stopPrice': response.get('stopPrice'),
+			'triggerPrice': response.get('triggerPrice'),
+			'takeProfitPrice': response.get('takeProfitPrice'),
+			'stopLossPrice': response.get('stopLossPrice'),
 		}
 
 		return output
 
 	async def place_order(self, market: str, order_type: OrderType, order_side: OrderSide, amount: float, price: float = None, stop_loss_price: float = None):
 		response = community_exchange.create_order(market, order_type, order_side, amount, price)
-
-		output = {
-			"id": response.get("id"),
-			"clientOrderId": response.get("clientOrderId"),
-			"symbol": response.get("symbol"),
-			"type": response.get("type"),
-			"side": response.get("side"),
-			"amount": response.get("amount"),
-			"price": response.get("price"),
-			"filled": response.get("filled"),
-			"status": response.get("status"),
-			"datetime": response.get("datetime"),
-		}
+		if response.get("status") == "rejected":
+			output = {'status': response.get('status')}
+		else:
+			output = {
+				'id': response.get("id"),
+				'clientOrderId': response.get("clientOrderId"),
+				'symbol': response.get("symbol"),
+				'type': response.get("type"),
+				'side': response.get("side"),
+				'amount': response.get("amount"),
+				'price': response.get("price"),
+				'filled': response.get("filled"),
+				'status': response.get("status"),
+				'datetime': response.get("datetime"),
+				'timestamp': response.get('timestamp'),
+				'lastTradeTimestamp': response.get('lastTradeTimestamp'),
+				'timeInForce': response.get('timeInForce'),
+				'average': response.get('average'),
+				'remaining': response.get('remaining'),
+				'cost': response.get('cost'),
+				# 'trades': response.get('trades'),
+				'fee': response.get('fee'),
+				# 'fees': response.get('fees'),
+				# 'info': response.get('info'),
+				'lastUpdateTimestamp': response.get('lastUpdateTimestamp'),
+				'postOnly': response.get('postOnly'),
+				'reduceOnly': response.get('reduceOnly'),
+				'stopPrice': response.get('stopPrice'),
+				'triggerPrice': response.get('triggerPrice'),
+				'takeProfitPrice': response.get('takeProfitPrice'),
+				'stopLossPrice': response.get('stopLossPrice'),
+			}
 
 		return output
 
@@ -1212,15 +1323,101 @@ class Model(object):
 
 	def handle_magic_command_output(self, method, response):
 		if MagicMethod.is_equivalent(method, MagicMethod.CANCEL_ALL_ORDERS):
-			output = response
+			output = [
+				{
+					'id': item.get('id'),
+					'clientOrderId': item.get('clientOrderId'),
+					'timestamp': item.get('timestamp'),
+					'datetime': item.get('datetime'),
+					'lastTradeTimestamp': item.get('lastTradeTimestamp'),
+					'lastUpdateTimestamp': item.get('lastUpdateTimestamp'),
+					'symbol': item.get('symbol'),
+					'type': item.get('type'),
+					'timeInForce': item.get('timeInForce'),
+					'postOnly': item.get('postOnly'),
+					'reduceOnly': item.get('reduceOnly'),
+					'side': item.get('side'),
+					'price': item.get('price'),
+					'triggerPrice': item.get('triggerPrice'),
+					'amount': item.get('amount'),
+					'cost': item.get('cost'),
+					'average': item.get('average'),
+					'filled': item.get('filled'),
+					'remaining': item.get('remaining'),
+					'status': item.get('status'),
+					'fee': item.get('fee'),
+					'trades': item.get('trades'),
+					'fees': item.get('fees'),
+					'stopPrice': item.get('stopPrice'),
+					'takeProfitPrice': item.get('takeProfitPrice'),
+					'stopLossPrice': item.get('stopLossPrice'),
+				} for item in response
+			]
 
 			return output
 		elif MagicMethod.is_equivalent(method, MagicMethod.CANCEL_ORDER):
-			output = response
+			output = [
+				{
+					'id': item.get('id'),
+					'clientOrderId': item.get('clientOrderId'),
+					'timestamp': item.get('timestamp'),
+					'datetime': item.get('datetime'),
+					'lastTradeTimestamp': item.get('lastTradeTimestamp'),
+					'lastUpdateTimestamp': item.get('lastUpdateTimestamp'),
+					'symbol': item.get('symbol'),
+					'type': item.get('type'),
+					'timeInForce': item.get('timeInForce'),
+					'postOnly': item.get('postOnly'),
+					'reduceOnly': item.get('reduceOnly'),
+					'side': item.get('side'),
+					'price': item.get('price'),
+					'triggerPrice': item.get('triggerPrice'),
+					'amount': item.get('amount'),
+					'cost': item.get('cost'),
+					'average': item.get('average'),
+					'filled': item.get('filled'),
+					'remaining': item.get('remaining'),
+					'status': item.get('status'),
+					'fee': item.get('fee'),
+					'trades': item.get('trades'),
+					'fees': item.get('fees'),
+					'stopPrice': item.get('stopPrice'),
+					'takeProfitPrice': item.get('takeProfitPrice'),
+					'stopLossPrice': item.get('stopLossPrice'),
+				} for item in response
+			]
 
 			return output
 		elif MagicMethod.is_equivalent(method, MagicMethod.CREATE_ORDER):
-			output = response
+			output = [
+				{
+					'id': item.get('id'),
+					'clientOrderId': item.get('clientOrderId'),
+					'timestamp': item.get('timestamp'),
+					'datetime': item.get('datetime'),
+					'lastTradeTimestamp': item.get('lastTradeTimestamp'),
+					'lastUpdateTimestamp': item.get('lastUpdateTimestamp'),
+					'symbol': item.get('symbol'),
+					'type': item.get('type'),
+					'timeInForce': item.get('timeInForce'),
+					'postOnly': item.get('postOnly'),
+					'reduceOnly': item.get('reduceOnly'),
+					'side': item.get('side'),
+					'price': item.get('price'),
+					'triggerPrice': item.get('triggerPrice'),
+					'amount': item.get('amount'),
+					'cost': item.get('cost'),
+					'average': item.get('average'),
+					'filled': item.get('filled'),
+					'remaining': item.get('remaining'),
+					'status': item.get('status'),
+					'fee': item.get('fee'),
+					'fees': item.get('fees'),
+					'stopPrice': item.get('stopPrice'),
+					'takeProfitPrice': item.get('takeProfitPrice'),
+					'stopLossPrice': item.get('stopLossPrice')
+				} for item in response
+			]
 
 			return output
 		elif MagicMethod.is_equivalent(method, MagicMethod.DESCRIBE):
@@ -1241,35 +1438,102 @@ class Model(object):
 
 			return output
 		elif MagicMethod.is_equivalent(method, MagicMethod.FETCH_CLOSED_ORDERS):
-			output = response
+			output = [
+				{
+					'id': item.get('id'),
+					'clientOrderId': item.get('clientOrderId'),
+					'timestamp': item.get('timestamp'),
+					'datetime': item.get('datetime'),
+					'lastTradeTimestamp': item.get('lastTradeTimestamp'),
+					'lastUpdateTimestamp': item.get('lastUpdateTimestamp'),
+					'symbol': item.get('symbol'),
+					'type': item.get('type'),
+					'timeInForce': item.get('timeInForce'),
+					'postOnly': item.get('postOnly'),
+					'reduceOnly': item.get('reduceOnly'),
+					'side': item.get('side'),
+					'price': item.get('price'),
+					'triggerPrice': item.get('triggerPrice'),
+					'amount': item.get('amount'),
+					'cost': item.get('cost'),
+					'average': item.get('average'),
+					'filled': item.get('filled'),
+					'remaining': item.get('remaining'),
+					'status': item.get('status'),
+					'fee': item.get('fee'),
+					# 'trades': item.get('trades'),
+					# 'fees': item.get('fees'),
+					'stopPrice': item.get('stopPrice'),
+					'takeProfitPrice': item.get('takeProfitPrice'),
+					'stopLossPrice': item.get('stopLossPrice'),
+				} for item in response
+			]
 
 			return output
 		elif MagicMethod.is_equivalent(method, MagicMethod.FETCH_CURRENCIES):
-			output = {
-				key: {
-					"id": value.get("id"),
-					"numericId": value.get("numericId"),
-					"code": value.get("code"),
-					"precision": value.get("precision"),
-					"type": value.get("type"),
-					"name": value.get("name"),
-					"active": value.get("active"),
-				} for key, value in response.items()
-			}
+			output = response
 
 			return output
 		elif MagicMethod.is_equivalent(method, MagicMethod.FETCH_MARKETS):
 			output = [
 				{
-					"symbol": item.get("symbol"),
-					"base": item.get("base"),
-					"quote": item.get("quote"),
+					'id': item.get('id'),
+					'lowercaseId': item.get('lowercaseId'),
+					'symbol': item.get('symbol'),
+					'base': item.get('base'),
+					'quote': item.get('quote'),
+					'settle': item.get('settle'),
+					'baseId': item.get('baseId'),
+					'quoteId': item.get('quoteId'),
+					'settleId': item.get('settleId'),
+					'type': item.get('type'),
+					'spot': item.get('spot'),
+					'margin': item.get('margin'),
+					'swap': item.get('swap'),
+					'future': item.get('future'),
+					'option': item.get('option'),
+					'index': item.get('index'),
+					'active': item.get('active'),
+					'contract': item.get('contract'),
+					'linear': item.get('linear'),
+					'inverse': item.get('inverse'),
+					'subType': item.get('subType'),
+					'taker': item.get('taker'),
+					'maker': item.get('maker'),
+					'contractSize': item.get('contractSize'),
+					'expiry': item.get('expiry'),
+					'expiryDatetime': item.get('expiryDatetime'),
+					'strike': item.get('strike'),
+					'optionType': item.get('optionType'),
+					'created': item.get('created'),
 				} for item in response
 			]
 
 			return output
 		elif MagicMethod.is_equivalent(method, MagicMethod.FETCH_MY_TRADES):
-			output = response
+			output = [
+				{
+					# 'id': item["info"].get('id'),
+					# 'p': item["info"].get('p'),
+					# 'q': item["info"].get('q'),
+					# 'infoSide': item["info"].get('side'),
+					# 'ts': item["info"].get('ts'),
+					'datetime': item.get('datetime'),
+					'symbol': item.get('symbol'),
+					'order': item.get('order'),
+					'type': item.get('type'),
+					'takerOrMaker': item.get('takerOrMaker'),
+					'side': item.get('side'),
+					'price': item.get('price'),
+					'amount': item.get('amount'),
+					'cost': item.get('cost'),
+					'fee': item.get('fee'),
+					# 'costFee': item['fees'].get('cost'),
+					# 'currency': item['fees'].get('currency'),
+					# 'rate': item['fees'].get('rate'),
+
+				} for item in response
+			]
 
 			return output
 		elif MagicMethod.is_equivalent(method, MagicMethod.FETCH_OHLCV):
@@ -1277,28 +1541,123 @@ class Model(object):
 
 			return output
 		elif MagicMethod.is_equivalent(method, MagicMethod.FETCH_OPEN_ORDERS):
-			output = response
+			output = [
+				{
+					'id': item.get('id'),
+					'clientOrderId': item.get('clientOrderId'),
+					'datetime': item.get('datetime'),
+					'timestamp': item.get('timestamp'),
+					'lastTradeTimestamp': item.get('lastTradeTimestamp'),
+					'status': item.get('status'),
+					'symbol': item.get('symbol'),
+					'type': item.get('type'),
+					'timeInForce': item.get('timeInForce'),
+					'side': item.get('side'),
+					'price': item.get('price'),
+					'average': item.get('average'),
+					'amount': item.get('amount'),
+					'filled': item.get('filled'),
+					'remaining': item.get('remaining'),
+					'cost': item.get('cost'),
+					'trades': item.get('trades'),
+					# "feeCurrency": item["fee"].get("currency"),
+					# "feeCost": item["fee"].get("cost"),
+					# "feeRate": item["fee"].get("rate"),
+					'lastUpdateTimestamp': item.get('lastUpdateTimestamp'),
+					'postOnly': item.get('postOnly'),
+					'reduceOnly': item.get('reduceOnly'),
+					'stopPrice': item.get('stopPrice'),
+					'triggerPrice': item.get('triggerPrice'),
+					'takeProfitPrice': item.get('takeProfitPrice'),
+					'stopLossPrice': item.get('stopLossPrice'),
+				} for item in response
+			]
 
 			return output
 		elif MagicMethod.is_equivalent(method, MagicMethod.FETCH_ORDER):
-			output = response
+			output ={
+				'id': response.get('id'),
+				'clientOrderId': response.get('clientOrderId'),
+				'datetime': response.get('datetime'),
+				'timestamp': response.get('timestamp'),
+				'lastTradeTimestamp': response.get('lastTradeTimestamp'),
+				'status': response.get('status'),
+				'symbol': response.get('symbol'),
+				'type': response.get('type'),
+				'timeInForce': response.get('timeInForce'),
+				'side': response.get('side'),
+				'price': response.get('price'),
+				'average': response.get('average'),
+				'amount': response.get('amount'),
+				'filled': response.get('filled'),
+				'remaining': response.get('remaining'),
+				'cost': response.get('cost'),
+				# 'trades': response.get('trades'),
+				# 'info': response.get('info'),
+				# 'fees': response.get('fees'),
+				'lastUpdateTimestamp': response.get('lastUpdateTimestamp'),
+				'postOnly': response.get('postOnly'),
+				'reduceOnly': response.get('reduceOnly'),
+				'stopPrice': response.get('stopPrice'),
+				'triggerPrice': response.get('triggerPrice'),
+				'takeProfitPrice': response.get('takeProfitPrice'),
+				'stopLossPrice': response.get('stopLossPrice'),
+				}
 
 			return output
 		elif MagicMethod.is_equivalent(method, MagicMethod.FETCH_ORDER_BOOK):
-			output = response
+			output = [
+				{
+					"bids": item.get("bids"),
+					"asks": item.get("asks"),
+					'datetime': item.get('datetime'),
+					'nonce': item.get('nonce'),
+					'symbol': item.get('symbol'),
+					'timestamp': item.get('timestamp'),
+				} for item in response
+			]
 
 			return output
 		elif MagicMethod.is_equivalent(method, MagicMethod.FETCH_ORDERS):
-			output = response
-
-			return output
-		elif MagicMethod.is_equivalent(method, MagicMethod.FETCH_ORDERS_ALL_MARKETS):
-			output = response
+			output = [
+				{
+					'id': item.get('id'),
+					'clientOrderId': item.get('clientOrderId'),
+					'datetime': item.get('datetime'),
+					'timestamp': item.get('timestamp'),
+					'lastTradeTimestamp': item.get('lastTradeTimestamp'),
+					'status': item.get('status'),
+					'symbol': item.get('symbol'),
+					'type': item.get('type'),
+					'timeInForce': item.get('timeInForce'),
+					'side': item.get('side'),
+					'price': item.get('price'),
+					'average': item.get('average'),
+					'amount': item.get('amount'),
+					'filled': item.get('filled'),
+					'remaining': item.get('remaining'),
+					'cost': item.get('cost'),
+					# 'trades': item.get('trades'),
+					'lastUpdateTimestamp': item.get('lastUpdateTimestamp'),
+					'postOnly': item.get('postOnly'),
+					'reduceOnly': item.get('reduceOnly'),
+					'stopPrice': item.get('stopPrice'),
+					'triggerPrice': item.get('triggerPrice'),
+					'takeProfitPrice': item.get('takeProfitPrice'),
+					'stopLossPrice': item.get('stopLossPrice'),
+					# 'info': item.get('info'),
+					# 'fees': item.get('fees')
+				} for item in response
+			]
 
 			return output
 		elif MagicMethod.is_equivalent(method, MagicMethod.FETCH_STATUS):
 			output = {
-				"status": response.get("status"),
+				'status': response.get('status'),
+				# 'updated': response.get('updated'),
+				# 'eta': response.get('eta'),
+				# 'url': response.get('url'),
+				# 'info': response.get('info'),
 			}
 
 			return output
@@ -1317,40 +1676,67 @@ class Model(object):
 				"percentage": response.get("percentage"),
 				"average": response.get("average"),
 				"baseVolume": response.get("baseVolume"),
-				"quoteVolume": response.get("quoteVolume")
+				"quoteVolume": response.get("quoteVolume"),
+				# "info": response.get("info")
 			}
+
 
 			return output
 		elif MagicMethod.is_equivalent(method, MagicMethod.FETCH_TICKERS):
 			output = {
 				key: {
-					"symbol": value.get("symbol"),
-					"datetime": value.get("datetime"),
-					"last": value.get("last"),
-					"open": value.get("open"),
-					"high": value.get("high"),
-					"low": value.get("low"),
-					"close": value.get("close"),
-					"bid": value.get("bid"),
-					"ask": value.get("ask"),
-					"change": value.get("change"),
-					"percentage": value.get("percentage"),
-					"average": value.get("average"),
-					"baseVolume": value.get("baseVolume"),
-					"quoteVolume": value.get("quoteVolume")
+					'symbol': value.get('symbol'),
+					'timestamp': value.get('timestamp'),
+					'datetime': value.get('datetime'),
+					'high': value.get('high'),
+					'low': value.get('low'),
+					'bid': value.get('bid'),
+					'bidVolume': value.get('bidVolume'),
+					'ask': value.get('ask'),
+					'askVolume': value.get('askVolume'),
+					'vwap': value.get('vwap'),
+					'open': value.get('open'),
+					'close': value.get('close'),
+					'last': value.get('last'),
+					'previousClose': value.get('previousClose'),
+					'change': value.get('change'),
+					'percentage': value.get('percentage'),
+					'average': value.get('average'),
+					'baseVolume': value.get('baseVolume'),
+					'quoteVolume': value.get('quoteVolume'),
+					# 'info': value.get('info')
 				} for key, value in response.items()
 			}
 
 			return output
 		elif MagicMethod.is_equivalent(method, MagicMethod.FETCH_TRADES):
-			output = response
+			output = {
+				'info': response.get('info'),
+				'timestamp': response.get('timestamp'),
+				'datetime': response.get('datetime'),
+				'symbol': response.get('symbol'),
+				'id': response.get('id'),
+				'order': response.get('order'),
+				'type': response.get('type'),
+				'takerOrMaker': response.get('takerOrMaker'),
+				'side': response.get('side'),
+				'price': response.get('price'),
+				'amount': response.get('amount'),
+				'cost': response.get('cost'),
+				'fee': response.get('fee'),
+				'fees': response.get('fees'),
+			}
 
 			return output
 		elif MagicMethod.is_equivalent(method, MagicMethod.FETCH_TRADING_FEE):
-			output = response
-
-			if output.get("info"):
-				del output["info"]
+			output = {
+				'info': response.get('info'),
+				'symbol': response.get('symbol'),
+				'maker': response.get('maker'),
+				'taker': response.get('taker'),
+				'percentage': response.get('percentage'),
+				'tierBased': response.get('tierBased'),
+			}
 
 			return output
 		elif MagicMethod.is_equivalent(method, MagicMethod.SET_SANDBOX_MODE):
