@@ -13,7 +13,7 @@ import textwrap
 import traceback
 from dotmap import DotMap
 from functools import wraps
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery, BotCommand
 from telegram.ext import Application, CommandHandler, ContextTypes, CallbackQueryHandler, filters, MessageHandler
 from typing import Any, Dict, List
 from singleton.singleton import ThreadSafeSingleton
@@ -172,8 +172,23 @@ class Telegram(object):
 		self.model = Model.instance()
 
 	# noinspection PyMethodMayBeStatic
-	def initialize(self):
+	async def initialize(self):
 		self.application = Application.builder().token(TELEGRAM_TOKEN).build()
+
+		commands = [
+			BotCommand("start", "Starts the bot"),
+			BotCommand("help", "Provides help information"),
+			BotCommand("balance", "Get your balance"),
+			BotCommand("balances", "Get all balances"),
+			BotCommand("openorders", "Get open orders"),
+			BotCommand("placemarketbuyorder", "Place a market buy order"),
+			BotCommand("placemarketsellorder", "Place a market sell order"),
+			BotCommand("placelimitbuyorder", "Place a limit buy order"),
+			BotCommand("placelimitsellorder", "Place a limit sell order"),
+			BotCommand("placeorder", "Place a custom order")
+		]
+
+		await self.application.bot.set_my_commands(commands)
 
 		self.application.add_handler(CommandHandler("start", self.start))
 		self.application.add_handler(CommandHandler("help", self.help))
@@ -1767,7 +1782,9 @@ class Model(object):
 
 
 def initialize():
-	Telegram.instance().initialize()
+	asyncio.get_event_loop().run_until_complete(
+		Telegram.instance().initialize()
+	)
 
 
 def test():
