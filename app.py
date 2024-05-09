@@ -672,7 +672,7 @@ class Telegram(object):
 						*/fetchOHLCV* `<marketId>`
 						*/fetchOpenOrders* `<marketId>`
 						*/fetchOrder* `<orderId> <marketId>`
-						*/fetchOrderBook*
+						*/fetchOrderBook* `<marketId>`
 						*/fetchOrders* `<marketId>`
 						*/fetchStatus*
 						*/fetchTicker* `<marketId>`
@@ -1477,6 +1477,9 @@ class Model(object):
 			if output.get("info"):
 				del output["info"]
 
+			if output.get("timestamp"):
+				del output["timestamp"]
+
 			return output
 		elif MagicMethod.is_equivalent(method, MagicMethod.FETCH_CLOSED_ORDERS):
 			output = [
@@ -1512,12 +1515,29 @@ class Model(object):
 
 			return output
 		elif MagicMethod.is_equivalent(method, MagicMethod.FETCH_CURRENCIES):
-			output = response
+			output = {
+				key: {
+					# "info": value.get("info"),
+					"id": value.get("id"),
+					"numericId": value.get("numericId"),
+					# "code": value.get("code"),
+					"precision": value.get("precision"),
+					# "type": value.get("type"),
+					"name": value.get("name"),
+					# "active": value.get("active"),
+					# "deposit": value.get("deposit"),
+					# "withdraw": value.get("withdraw"),
+					# "fee": value.get("fee"),
+					# "fees": value.get("fees"),
+					# "networks": value.get("networks"),
+					# "limits": value.get("limits"),
+				} for key, value in response.items()
+			}
 
 			return output
 		elif MagicMethod.is_equivalent(method, MagicMethod.FETCH_MARKETS):
-			output = [
-				{
+			output = {
+				item.get('symbol'): {
 					'id': item.get('id'),
 					# 'lowercaseId': item.get('lowercaseId'),
 					'symbol': item.get('symbol'),
@@ -1548,7 +1568,7 @@ class Model(object):
 					# 'optionType': item.get('optionType'),
 					# 'created': item.get('created'),
 				} for item in response
-			]
+			}
 
 			return output
 		elif MagicMethod.is_equivalent(method, MagicMethod.FETCH_MY_TRADES):
@@ -1578,7 +1598,15 @@ class Model(object):
 
 			return output
 		elif MagicMethod.is_equivalent(method, MagicMethod.FETCH_OHLCV):
-			output = response
+			output = {
+				item[0]: {
+					"open": item[1],
+					"high": item[2],
+					"low": item[3],
+					"close": item[4],
+					"volume": item[5]
+				} for item in response
+			}
 
 			return output
 		elif MagicMethod.is_equivalent(method, MagicMethod.FETCH_OPEN_ORDERS):
@@ -1647,16 +1675,24 @@ class Model(object):
 
 			return output
 		elif MagicMethod.is_equivalent(method, MagicMethod.FETCH_ORDER_BOOK):
-			output = [
-				{
-					"bids": item.get("bids"),
-					"asks": item.get("asks"),
-					'datetime': item.get('datetime'),
-					# 'nonce': item.get('nonce'),
-					'symbol': item.get('symbol'),
-					# 'timestamp': item.get('timestamp'),
-				} for item in response
-			]
+			output = {
+				"bids": [
+					{
+						"price": item[0],
+						"amount": item[1]
+					} for item in response.get("bids")
+				],
+				"asks": [
+					{
+						"price": item[0],
+						"amount": item[1]
+					} for item in response.get("asks")
+				],
+				'datetime': response.get('datetime'),
+				# 'nonce': response.get('nonce'),
+				'symbol': response.get('symbol'),
+				# 'timestamp': response.get('timestamp'),
+			}
 
 			return output
 		elif MagicMethod.is_equivalent(method, MagicMethod.FETCH_ORDERS):
