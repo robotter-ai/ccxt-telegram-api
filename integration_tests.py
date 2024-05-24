@@ -74,6 +74,11 @@ class IntegrationTests:
 			# self.withdraw()
 			# self.watch_order_book()
 
+			# print(await self.model.set_sandbox_mode(True))
+			# print(await self.model.fetch_markets())
+			# print(await self.model.set_sandbox_mode(False))
+			# print(await self.model.fetch_markets())
+
 			# print(await self.model.get_balances())
 			# print(await self.model.get_balance("BTC"))
 			# print(await self.model.get_open_orders("BTCUSDT"))
@@ -95,6 +100,8 @@ class IntegrationTests:
 			# print(await self.model.fetch_closed_orders("BTCUSDT"))
 			# print(await self.model.fetch_currencies())
 			# print(await self.model.fetch_balance())
+			# print(await self.model.fetch_trading_fee("tsoltusdc"))
+			# print(await self.model.fetch_withdrawals("tsol"))
 
 			# await self.place_order(None, None, {
 			# 	"type": "market",
