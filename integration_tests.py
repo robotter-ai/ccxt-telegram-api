@@ -21,6 +21,7 @@ class IntegrationTests:
 		self.use_sandbox_mode = True
 		self.market_symbols = ['tsoltusdc', 'tbtctusdc']
 		self.market_ids = ['200047', '200005']
+		self.currency_symbols = ['tsol', 'tusdc']
 		self.order_sides = ['buy', 'sell']
 		self.order_types = ['limit', 'market']
 		self.client_order_id = 1712612349538
@@ -56,6 +57,7 @@ class IntegrationTests:
 
 			# self.cancel_order()
 			# self.fetch_balance()
+			# self.fetch_deposits()
 			# self.fetch_raw_order()
 			# self.fetch_order()
 			# self.fetch_open_orders()
@@ -73,6 +75,11 @@ class IntegrationTests:
 			# self.deposit()
 			# self.withdraw()
 			# self.watch_order_book()
+
+			# print(await self.model.set_sandbox_mode(True))
+			# print(await self.model.fetch_markets())
+			# print(await self.model.set_sandbox_mode(False))
+			# print(await self.model.fetch_markets())
 
 			# print(await self.model.get_balances())
 			# print(await self.model.get_balance("BTC"))
@@ -95,6 +102,8 @@ class IntegrationTests:
 			# print(await self.model.fetch_closed_orders("BTCUSDT"))
 			# print(await self.model.fetch_currencies())
 			# print(await self.model.fetch_balance())
+			# print(await self.model.fetch_trading_fee("tsoltusdc"))
+			# print(await self.model.fetch_withdrawals("tsol"))
 
 			# await self.place_order(None, None, {
 			# 	"type": "market",
@@ -132,7 +141,7 @@ class IntegrationTests:
 		self.community_exchange.secret = os.getenv('API_SECRET')
 		if self.use_sandbox_mode:
 			self.community_exchange.set_sandbox_mode(True)
-		# self.community_exchange.options['subaccountId'] = self.sub_account_id
+	# self.community_exchange.options['subaccountId'] = self.sub_account_id
 
 	def create_pro_exchange(self):
 		self.pro_exchange = getattr(sync_ccxt.pro, self.exchange_id)()
@@ -140,7 +149,7 @@ class IntegrationTests:
 		self.pro_exchange.secret = os.getenv('API_SECRET')
 		if self.use_sandbox_mode:
 			self.community_exchange.set_sandbox_mode(True)
-		# self.pro_exchange.options['subaccountId'] = self.sub_account_id
+	# self.pro_exchange.options['subaccountId'] = self.sub_account_id
 
 	def load_markets(self):
 		response = self.community_exchange.load_markets()
@@ -216,9 +225,7 @@ class IntegrationTests:
 		self.log(response)
 
 	def cancel_all_orders(self):
-		response = self.community_exchange.cancel_all_orders(self.market_symbols[0], {
-			'requestId': 1,
-		})
+		response = self.community_exchange.cancel_all_orders(self.market_symbols[0])
 		self.log(response)
 
 	def fetch_raw_order(self):
@@ -255,7 +262,11 @@ class IntegrationTests:
 		pass
 
 	def withdraw(self):
-		response = self.community_exchange.withdraw()
+		response = self.community_exchange.withdraw(
+			self.currency_symbols[0],
+			0.1,
+			""
+		)
 		self.log(response)
 
 	def fetch_trading_fee(self):
@@ -272,3 +283,7 @@ class IntegrationTests:
 
 	def parse_order(self):
 		pass
+
+	def fetch_deposits(self):
+		response = self.community_exchange.fetch_deposits(self.currency_symbols[0])
+		self.log(response)
