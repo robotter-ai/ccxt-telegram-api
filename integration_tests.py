@@ -21,6 +21,7 @@ class IntegrationTests:
 		self.use_sandbox_mode = True
 		self.market_symbols = ['tsoltusdc', 'tbtctusdc']
 		self.market_ids = ['200047', '200005']
+		self.currency_symbols = ['tsol', 'tusdc']
 		self.order_sides = ['buy', 'sell']
 		self.order_types = ['limit', 'market']
 		self.client_order_id = 1712612349538
@@ -56,6 +57,7 @@ class IntegrationTests:
 
 			# self.cancel_order()
 			# self.fetch_balance()
+			# self.fetch_deposits()
 			# self.fetch_raw_order()
 			# self.fetch_order()
 			# self.fetch_open_orders()
@@ -223,9 +225,7 @@ class IntegrationTests:
 		self.log(response)
 
 	def cancel_all_orders(self):
-		response = self.community_exchange.cancel_all_orders(self.market_symbols[0], {
-			'requestId': 1,
-		})
+		response = self.community_exchange.cancel_all_orders(self.market_symbols[0])
 		self.log(response)
 
 	def fetch_raw_order(self):
@@ -262,7 +262,11 @@ class IntegrationTests:
 		pass
 
 	def withdraw(self):
-		response = self.community_exchange.withdraw()
+		response = self.community_exchange.withdraw(
+			self.currency_symbols[0],
+			0.1,
+			""
+		)
 		self.log(response)
 
 	def fetch_trading_fee(self):
@@ -279,3 +283,7 @@ class IntegrationTests:
 
 	def parse_order(self):
 		pass
+
+	def fetch_deposits(self):
+		response = self.community_exchange.fetch_deposits(self.currency_symbols[0])
+		self.log(response)
