@@ -21,11 +21,13 @@ class IntegrationTests:
 		self.use_sandbox_mode = True
 		self.market_symbols = ['tsoltusdc', 'tbtctusdc']
 		self.market_ids = ['200047', '200005']
-		self.currency_symbols = ['tsol', 'tusdc']
+		self.currency_symbols = ['TSOL', 'TUSDC']
 		self.order_sides = ['buy', 'sell']
 		self.order_types = ['limit', 'market']
 		self.client_order_id = 1712612349538
 		self.exchange_order_id = '5341481585'
+		self.withdraw_destination_address = os.getenv("WITHDRAW_DESTINATION_ADDRESS", "9UgEM4drd6SdCQ22nYiX9BxCqmzPdrj31Vawkg777K7J")
+
 		self.community_exchange: CommunityExchange = None
 		self.pro_exchange: ProExchange = None
 		self.model: Model = None
@@ -265,7 +267,7 @@ class IntegrationTests:
 		response = self.community_exchange.withdraw(
 			self.currency_symbols[0],
 			0.1,
-			""
+			self.withdraw_destination_address
 		)
 		self.log(response)
 
