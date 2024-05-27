@@ -60,6 +60,7 @@ class IntegrationTests:
 			# self.cancel_order()
 			# self.fetch_balance()
 			# self.fetch_deposits()
+			# self.fetch_withdrawals()
 			# self.fetch_raw_order()
 			# self.fetch_order()
 			# self.fetch_open_orders()
@@ -182,7 +183,7 @@ class IntegrationTests:
 		self.log(response)
 
 	def fetch_trades(self):
-		response = self.community_exchange.fetch_trades(self.market_symbols[0])
+		response = self.community_exchange.fetch_trades(self.market_symbols[0], None, 5)
 		self.log(response)
 
 	def fetch_balance(self):
@@ -258,7 +259,8 @@ class IntegrationTests:
 		pass
 
 	def fetch_my_trades(self):
-		pass
+		response = self.community_exchange.fetch_my_trades(self.market_symbols[0], None, 1)
+		self.log(response)
 
 	def deposit(self):
 		pass
@@ -288,4 +290,8 @@ class IntegrationTests:
 
 	def fetch_deposits(self):
 		response = self.community_exchange.fetch_deposits(self.currency_symbols[0])
+		self.log(response)
+
+	def fetch_withdrawals(self):
+		response = self.community_exchange.fetch_withdrawals(self.currency_symbols[0])
 		self.log(response)
