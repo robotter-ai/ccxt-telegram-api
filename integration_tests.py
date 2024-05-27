@@ -61,11 +61,9 @@ class IntegrationTests:
 			# self.fetch_balance()
 			# self.fetch_deposits()
 			# self.fetch_withdrawals()
-			# self.fetch_raw_order()
 			# self.fetch_order()
 			# self.fetch_open_orders()
 			# self.fetch_orders()
-			# self.fetch_raw_orders()
 			# self.fetch_order_book()
 			# self.fetch_ticker()
 			# self.fetch_tickers()
@@ -231,11 +229,6 @@ class IntegrationTests:
 		response = self.community_exchange.cancel_all_orders(self.market_symbols[0])
 		self.log(response)
 
-	def fetch_raw_order(self):
-		response = self.community_exchange.fetch_raw_order(self.exchange_order_id, self.market_symbols[0], {
-		})
-		self.log(response)
-
 	def fetch_order(self):
 		response = self.community_exchange.fetch_order(self.exchange_order_id, self.market_symbols[0], {
 		})
@@ -244,10 +237,6 @@ class IntegrationTests:
 	def fetch_orders(self):
 		response = self.community_exchange.fetch_orders(self.market_symbols[0], None, None, {
 		})
-		self.log(response)
-
-	def fetch_raw_orders(self):
-		response = self.community_exchange.fetch_raw_orders()
 		self.log(response)
 
 	def fetch_open_orders(self):
