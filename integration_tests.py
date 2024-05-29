@@ -278,9 +278,33 @@ class IntegrationTests:
 		pass
 
 	def fetch_deposits(self):
-		response = self.community_exchange.fetch_deposits(self.currency_symbols[0])
+		response = self.community_exchange.fetch_deposits()
+		self.log(response)
+
+		response = self.community_exchange.fetch_deposits(symbol=self.currency_symbols[0])
+		self.log(response)
+
+		response = self.community_exchange.fetch_deposits(since=1715969797063)
+		self.log(response)
+
+		response = self.community_exchange.fetch_deposits(limit=2)
+		self.log(response)
+
+		response = self.community_exchange.fetch_deposits(symbol=self.currency_symbols[0], since=1715969797063, limit=2)
 		self.log(response)
 
 	def fetch_withdrawals(self):
-		response = self.community_exchange.fetch_withdrawals(self.currency_symbols[0])
+		response = self.community_exchange.fetch_withdrawals()
+		self.log(response)
+
+		response = self.community_exchange.fetch_withdrawals(symbol=self.currency_symbols[0])
+		self.log(response)
+
+		response = self.community_exchange.fetch_withdrawals(since=1715969797063)
+		self.log(response)
+
+		response = self.community_exchange.fetch_withdrawals(limit=2)
+		self.log(response)
+
+		response = self.community_exchange.fetch_withdrawals(symbol=self.currency_symbols[0], since=1715969797063, limit=2)
 		self.log(response)
