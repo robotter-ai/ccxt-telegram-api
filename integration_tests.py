@@ -84,23 +84,23 @@ class IntegrationTests:
 
 			# print(await self.model.get_balances())
 			# print(await self.model.get_balance("BTC"))
-			# print(await self.model.get_open_orders("BTCUSDT"))
-			# print(await self.model.market_buy_order("BTCUSDT", 0.00009))
-			# print(await self.model.market_sell_order("BTCUSDT", 0.00009))
-			# print(await self.model.limit_buy_order("BTCUSDT", 0.001, 20000))
-			# print(await self.model.limit_sell_order("BTCUSDT", 0.00009, 99999))
-			# print(await self.model.place_order("BTCUSDT", "market", "buy", 0.0001))
-			# print(await self.model.place_order("BTCUSDT", "limit", "sell", 0.00009, 99999))
+			# print(await self.model.get_open_orders("tsoltusdc"))
+			# print(await self.model.market_buy_order("tsoltusdc", 0.00009))
+			# print(await self.model.market_sell_order("tsoltusdc", 0.00009))
+			# print(await self.model.limit_buy_order("tsoltusdc", 0.001, 20000))
+			# print(await self.model.limit_sell_order("tsoltusdc", 0.00009, 99999))
+			# print(await self.model.place_order("tsoltusdc", "market", "buy", 0.0001))
+			# print(await self.model.place_order("tsoltusdc", "limit", "sell", 0.00009, 99999))
 
 			# print(await self.model.fetch_markets())
 			# print(await self.model.fetch_balance())
-			# print(await self.model.fetch_ticker("BTCUSDT"))
+			# print(await self.model.fetch_ticker("tsoltusdc"))
 			# print(await self.model.fetch_tickers())
-			# print(await self.model.fetch_orders("BTCUSDT"))
+			# print(await self.model.fetch_orders("tsoltusdc"))
 			# print(await self.model.fetch_currencies())
-			# print(await self.model.cancel_all_orders("BTCUSDT"))
-			# print(await self.model.create_order("BTCUSDT", "market", "buy", 0.0001))
-			# print(await self.model.fetch_closed_orders("BTCUSDT"))
+			# print(await self.model.cancel_all_orders("tsoltusdc"))
+			# print(await self.model.create_order("tsoltusdc", "market", "buy", 0.0001))
+			# print(await self.model.fetch_closed_orders("tsoltusdc"))
 			# print(await self.model.fetch_currencies())
 			# print(await self.model.fetch_balance())
 			# print(await self.model.fetch_trading_fee("tsoltusdc"))
@@ -109,14 +109,14 @@ class IntegrationTests:
 			# await self.place_order(None, None, {
 			# 	"type": "market",
 			# 	"side": "buy",
-			# 	"market_id": "BTCUSDT",
+			# 	"market_id": "tsoltusdc",
 			# 	"amount": 0.00009
 			# })
 
 			# await self.place_order(None, None, {
 			# 	"type": "limit",
 			# 	"side": "sell",
-			# 	"market_id": "BTCUSDT",
+			# 	"market_id": "tsoltusdc",
 			# 	"amount": 0.00009,
 			# 	"price": 99999
 			# })
