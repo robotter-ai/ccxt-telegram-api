@@ -106,6 +106,14 @@ class MagicMethod(Enum):
 	def is_equivalent(target: str, method: Any):
 		return str(target).replace("_", "").lower() == method.value.replace("_", "").lower()
 
+	@staticmethod
+	def find(target: str):
+		for method in MagicMethod:
+			if MagicMethod.is_equivalent(target, method):
+				return method
+
+		raise ValueError(f"""Unrecognized magic method "{target}".""")
+
 
 def sync_handle_exceptions(method):
 
@@ -182,13 +190,6 @@ class Telegram(object):
 			BotCommand("help", "| Provides help information"),
 			BotCommand("balance", "<tokenId> | Get your balance"),
 			BotCommand("balances", "| Get all balances"),
-			BotCommand("openorders", "<marketId> | Get open orders"),
-			BotCommand("placemarketbuyorder", "<marketId> <amount> | Place a market buy order"),
-			BotCommand("placemarketsellorder", "<marketId> <amount> | Place a market sell order"),
-			BotCommand("placelimitbuyorder", "<marketId> <amount> <price> | Place a limit buy order"),
-			BotCommand("placelimitsellorder", "<marketId> <amount> <price> | Place a limit sell order"),
-			BotCommand("placeorder", "<limit/market> <buy/sell> <marketId> <amount> <price> | Place a custom order"),
-
 			BotCommand("cancel_all_orders", "<marketId> | Cancel all open orders from a market"),
 			BotCommand("cancel_order", "<orderId or clientOrderId> | Cancel a specific order from a market"),
 			BotCommand("create_order", "<marketId> <limit/market> <buy/sell> <amount> <price> | Place an order"),
@@ -213,6 +214,12 @@ class Telegram(object):
 			BotCommand("fetch_trading_fee", "<marketId> | Fetch the trading fee from a market"),
 			BotCommand("fetch_withdrawal", "<withdrawId> | Fetch a specific withdraw from the user"),
 			BotCommand("fetch_withdrawals", "<currencyId> | Fetch all withdraws from the user for a specific currency"),
+			BotCommand("open_orders", "<marketId> | Get open orders"),
+			BotCommand("place_market_buy_order", "<marketId> <amount> | Place a market buy order"),
+			BotCommand("place_market_sell_order", "<marketId> <amount> | Place a market sell order"),
+			BotCommand("place_limit_buy_order", "<marketId> <amount> <price> | Place a limit buy order"),
+			BotCommand("place_limit_sell_order", "<marketId> <amount> <price> | Place a limit sell order"),
+			BotCommand("place_order", "<limit/market> <buy/sell> <marketId> <amount> <price> | Place a custom order"),
 			BotCommand("set_sandbox_mode", "<true/false> | Enable or disable the sandbox mode"),
 			BotCommand("withdraw", "<currencyId> <amount> <destinationAddress> <tag>| Withdraw funds from a currency to an address"),
 		]
@@ -223,11 +230,17 @@ class Telegram(object):
 		self.application.add_handler(CommandHandler("balance", self.get_balance))
 		self.application.add_handler(CommandHandler("balances", self.get_balances))
 		self.application.add_handler(CommandHandler("openOrders", self.get_open_orders))
+		self.application.add_handler(CommandHandler("open_orders", self.get_open_orders))
 		self.application.add_handler(CommandHandler("placeMarketBuyOrder", self.market_buy_order))
+		self.application.add_handler(CommandHandler("place_market_buy_order", self.market_buy_order))
 		self.application.add_handler(CommandHandler("placeMarketSellOrder", self.market_sell_order))
+		self.application.add_handler(CommandHandler("place_market_sell_order", self.market_sell_order))
 		self.application.add_handler(CommandHandler("placeLimitBuyOrder", self.limit_buy_order))
+		self.application.add_handler(CommandHandler("place_limit_buy_order", self.limit_buy_order))
 		self.application.add_handler(CommandHandler("placeLimitSellOrder", self.limit_sell_order))
+		self.application.add_handler(CommandHandler("place_limit_sell_order", self.limit_sell_order))
 		self.application.add_handler(CommandHandler("placeOrder", self.place_order))
+		self.application.add_handler(CommandHandler("place_order", self.place_order))
 
 		self.application.add_handler(CallbackQueryHandler(self.button_handler))
 		self.application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, self.text_handler))
@@ -533,6 +546,7 @@ class Telegram(object):
 			else:
 				positional_args.append(self.parse_argument(token))
 
+		command = MagicMethod.find(command).value
 		command = self.camel_to_snake(command)
 
 		method = getattr(self.model, command, None)
