@@ -13,7 +13,8 @@ import textwrap
 import traceback
 from dotmap import DotMap
 from functools import wraps
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery, BotCommand
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery, BotCommand, WebAppInfo, \
+	KeyboardButton, ReplyKeyboardMarkup
 from telegram.ext import Application, CommandHandler, ContextTypes, CallbackQueryHandler, filters, MessageHandler
 from typing import Any, Dict, List
 from singleton.singleton import ThreadSafeSingleton
@@ -47,6 +48,7 @@ EXCHANGE_API_KEY = os.getenv("EXCHANGE_API_KEY")
 EXCHANGE_API_SECRET = os.getenv("EXCHANGE_API_SECRET")
 EXCHANGE_ENVIRONMENT = os.getenv("EXCHANGE_ENVIRONMENT", "production")
 EXCHANGE_SUB_ACCOUNT_ID = os.getenv("EXCHANGE_SUB_ACCOUNT_ID")
+EXCHANGE_WEB_APP_URL = os.getenv("EXCHANGE_WEB_APP_URL", "https://cube.exchange/")
 
 RUN_INTEGRATION_TESTS = os.getenv("RUN_INTEGRATION_TESTS", "false").lower() in ["true", "1"]
 
@@ -584,6 +586,7 @@ class Telegram(object):
 			return
 
 		command_buttons = [
+			# [KeyboardButton(text="Web App", web_app=WebAppInfo(url=EXCHANGE_WEB_APP_URL))],
 			# [InlineKeyboardButton("Get a Token Balance", callback_data="balance")],
 			[InlineKeyboardButton("Get All Balances", callback_data="balances")],
 			[InlineKeyboardButton("Get All Open Orders from a Market", callback_data="open_orders")],
@@ -593,7 +596,12 @@ class Telegram(object):
 			# [InlineKeyboardButton("Place a Limit Sell Order", callback_data="place_limit_sell_order")],
 			[InlineKeyboardButton("Place a Custom Order", callback_data="place_order")],
 		]
-		reply_markup = InlineKeyboardMarkup(command_buttons)
+		inline_keyboard_markup = InlineKeyboardMarkup(command_buttons)
+
+		web_app_keyboard = [
+			[KeyboardButton(text="Web App", web_app=WebAppInfo(url=EXCHANGE_WEB_APP_URL))]
+		]
+		reply_keyboard_markup = ReplyKeyboardMarkup(web_app_keyboard, resize_keyboard=True)
 
 		await self.send_message(
 			textwrap.dedent(
@@ -618,7 +626,20 @@ class Telegram(object):
 			context,
 			query,
 			parse_mode="Markdown",
-			reply_markup=reply_markup
+			reply_markup=inline_keyboard_markup
+		)
+
+		await self.send_message(
+			textwrap.dedent(
+				"""
+					Click on the button below to open the Web App:
+				"""
+			),
+			update,
+			context,
+			query,
+			parse_mode="Markdown",
+			reply_markup=reply_keyboard_markup
 		)
 
 	async def help(self, update: Update, context: ContextTypes.DEFAULT_TYPE, query: CallbackQuery = None, data: Any = None):
