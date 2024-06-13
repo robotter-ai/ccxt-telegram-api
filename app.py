@@ -189,32 +189,32 @@ class Telegram(object):
 			BotCommand("placelimitsellorder", "<marketId> <amount> <price> | Place a limit sell order"),
 			BotCommand("placeorder", "<limit/market> <buy/sell> <marketId> <amount> <price> | Place a custom order"),
 
-			# BotCommand("cancel_all_orders", "<marketId> | Cancel all open orders from a market"),
-			# BotCommand("cancel_order", "<orderId or clientOrderId> | Cancel a specific order from a market"),
-			# BotCommand("create_order", "<marketId> <limit/market> <buy/sell> <amount> <price> | Place an order"),
-			# BotCommand("describe", "| Bring all information about the exchange"),
-			# BotCommand("fetch_balance", "| Fetch all balances from the user"),
-			# BotCommand("fetch_closed_orders", "<marketId> | Fetch all closed orders from a market"),
-			# BotCommand("fetch_currencies", "| Fetch all currencies"),
-			# BotCommand("fetch_deposit", "<depositId> | Fetch a specific deposit from the user"),
-			# BotCommand("fetch_deposits", "<currencyId> | Fetch all deposits from the user for a specific currency"),
-			# BotCommand("fetch_markets", "| Fetch all markets"),
-			# BotCommand("fetch_my_trades", "<marketId> | Fetch all user trades from a market"),
-			# BotCommand("fetch_ohlcv", "<marketId> | Fetch the OHLCV (open, high, low, close, volume) from a market"),
-			# BotCommand("fetch_open_orders", "<marketId> | Fetch all open orders from a market"),
-			# BotCommand("fetch_order", "<orderId or clientOrderId> | Fetch a specific order from a market"),
-			# BotCommand("fetch_order_book", "<marketId> | Fetch the order book from a market"),
-			# BotCommand("fetch_orders", "<marketId> | Fetch all orders from a market"),
-			# BotCommand("fetch_orders_all_markets", "| Fetch all orders from all markets"),
-			# BotCommand("fetch_status", "| Bring the status of the exchange"),
-			# BotCommand("fetch_ticker", "<marketId> | Fetch the ticker from a market"),
-			# BotCommand("fetch_tickers", "| Fetch the tickers from all markets"),
-			# BotCommand("fetch_trades", "<marketId> | Fetch all trades from a market"),
-			# BotCommand("fetch_trading_fee", "<marketId> | Fetch the trading fee from a market"),
-			# BotCommand("fetch_withdrawal", "<withdrawId> | Fetch a specific withdraw from the user"),
-			# BotCommand("fetch_withdrawals", "<currencyId> | Fetch all withdraws from the user for a specific currency"),
-			# BotCommand("set_sandbox_mode", "<true/false> | Enable or disable the sandbox mode"),
-			# BotCommand("withdraw", "<currencyId> <amount> <destinationAddress> <tag>| Withdraw funds from a currency to an address"),
+			BotCommand("cancel_all_orders", "<marketId> | Cancel all open orders from a market"),
+			BotCommand("cancel_order", "<orderId or clientOrderId> | Cancel a specific order from a market"),
+			BotCommand("create_order", "<marketId> <limit/market> <buy/sell> <amount> <price> | Place an order"),
+			BotCommand("describe", "| Bring all information about the exchange"),
+			BotCommand("fetch_balance", "| Fetch all balances from the user"),
+			BotCommand("fetch_closed_orders", "<marketId> | Fetch all closed orders from a market"),
+			BotCommand("fetch_currencies", "| Fetch all currencies"),
+			BotCommand("fetch_deposit", "<depositId> | Fetch a specific deposit from the user"),
+			BotCommand("fetch_deposits", "<currencyId> | Fetch all deposits from the user for a specific currency"),
+			BotCommand("fetch_markets", "| Fetch all markets"),
+			BotCommand("fetch_my_trades", "<marketId> | Fetch all user trades from a market"),
+			BotCommand("fetch_ohlcv", "<marketId> | Fetch the OHLCV (open, high, low, close, volume) from a market"),
+			BotCommand("fetch_open_orders", "<marketId> | Fetch all open orders from a market"),
+			BotCommand("fetch_order", "<orderId or clientOrderId> | Fetch a specific order from a market"),
+			BotCommand("fetch_order_book", "<marketId> | Fetch the order book from a market"),
+			BotCommand("fetch_orders", "<marketId> | Fetch all orders from a market"),
+			BotCommand("fetch_orders_all_markets", "| Fetch all orders from all markets"),
+			BotCommand("fetch_status", "| Bring the status of the exchange"),
+			BotCommand("fetch_ticker", "<marketId> | Fetch the ticker from a market"),
+			BotCommand("fetch_tickers", "| Fetch the tickers from all markets"),
+			BotCommand("fetch_trades", "<marketId> | Fetch all trades from a market"),
+			BotCommand("fetch_trading_fee", "<marketId> | Fetch the trading fee from a market"),
+			BotCommand("fetch_withdrawal", "<withdrawId> | Fetch a specific withdraw from the user"),
+			BotCommand("fetch_withdrawals", "<currencyId> | Fetch all withdraws from the user for a specific currency"),
+			BotCommand("set_sandbox_mode", "<true/false> | Enable or disable the sandbox mode"),
+			BotCommand("withdraw", "<currencyId> <amount> <destinationAddress> <tag>| Withdraw funds from a currency to an address"),
 		]
 		await self.application.bot.set_my_commands(commands)
 
@@ -586,20 +586,20 @@ class Telegram(object):
 			return
 
 		command_buttons = [
-			# [KeyboardButton(text="Web App", web_app=WebAppInfo(url=EXCHANGE_WEB_APP_URL))],
-			# [InlineKeyboardButton("Get a Token Balance", callback_data="balance")],
+			[KeyboardButton(text=f"{str(EXCHANGE_ID).capitalize()} App", web_app=WebAppInfo(url=EXCHANGE_WEB_APP_URL))],
+			[InlineKeyboardButton("Get a Token Balance", callback_data="balance")],
 			[InlineKeyboardButton("Get All Balances", callback_data="balances")],
 			[InlineKeyboardButton("Get All Open Orders from a Market", callback_data="open_orders")],
-			# [InlineKeyboardButton("Place a Market Buy Order", callback_data="place_market_buy_order")],
-			# [InlineKeyboardButton("Place a Market Sell Order", callback_data="place_market_sell_order")],
-			# [InlineKeyboardButton("Place a Limit Buy Order", callback_data="place_limit_buy_order")],
-			# [InlineKeyboardButton("Place a Limit Sell Order", callback_data="place_limit_sell_order")],
+			[InlineKeyboardButton("Place a Market Buy Order", callback_data="place_market_buy_order")],
+			[InlineKeyboardButton("Place a Market Sell Order", callback_data="place_market_sell_order")],
+			[InlineKeyboardButton("Place a Limit Buy Order", callback_data="place_limit_buy_order")],
+			[InlineKeyboardButton("Place a Limit Sell Order", callback_data="place_limit_sell_order")],
 			[InlineKeyboardButton("Place a Custom Order", callback_data="place_order")],
 		]
 		inline_keyboard_markup = InlineKeyboardMarkup(command_buttons)
 
 		web_app_keyboard = [
-			[KeyboardButton(text="Web App", web_app=WebAppInfo(url=EXCHANGE_WEB_APP_URL))]
+			[KeyboardButton(text=f"{str(EXCHANGE_ID).capitalize()} App", web_app=WebAppInfo(url=EXCHANGE_WEB_APP_URL))]
 		]
 		reply_keyboard_markup = ReplyKeyboardMarkup(web_app_keyboard, resize_keyboard=True)
 
@@ -617,9 +617,6 @@ class Telegram(object):
 					*/openOrders* `<marketId>`
 					
 					*/placeOrder* `<limit/market> <buy/sell> <marketId> <amount> <price>`
-					
-					
-					*Type /help to get more information and more advanced commands. Feel free to explore and trade safely!* 🚀
 				"""
 			),
 			update,
@@ -632,7 +629,9 @@ class Telegram(object):
 		await self.send_message(
 			textwrap.dedent(
 				"""
-					Click on the button below to open the Web App:
+					*Click on the button to open the Web App.*
+					
+					*Type /help to get more information and more advanced commands. Feel free to explore and trade safely!* 🚀
 				"""
 			),
 			update,
