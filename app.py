@@ -86,6 +86,7 @@ class MagicMethod(Enum):
 	FETCH_BALANCE = "fetchBalance"
 	FETCH_CLOSED_ORDERS = "fetchClosedOrders"
 	FETCH_CURRENCIES = "fetchCurrencies"
+	FETCH_DEPOSIT_ADDRESSES = "fetchDepositAddresses"
 	FETCH_MARKETS = "fetchMarkets"
 	FETCH_MY_TRADES = "fetchMyTrades"
 	FETCH_OHLCV = "fetchOHLCV"
@@ -197,6 +198,7 @@ class Telegram(object):
 			BotCommand("fetch_balance", "| Fetch all balances from the user"),
 			BotCommand("fetch_closed_orders", "<marketId> | Fetch all closed orders from a market"),
 			BotCommand("fetch_currencies", "| Fetch all currencies"),
+			BotCommand("fetch_deposit_addresses", "<codes> | Fetch the deposit addresses"),
 			BotCommand("fetch_deposit", "<depositId> | Fetch a specific deposit from the user"),
 			BotCommand("fetch_deposits", "<currencyId> | Fetch all deposits from the user for a specific currency"),
 			BotCommand("fetch_markets", "| Fetch all markets"),
@@ -702,6 +704,7 @@ class Telegram(object):
 						*/describe*	
 						*/fetchBalance*
 						*/fetchCurrencies*
+						*/fetchDepositAddresses*
 						*/fetchMarkets*
 						*/fetchOHLCV* `<marketId>`
 						*/fetchOpenOrders* `<marketId>`
@@ -1565,6 +1568,21 @@ class Model(object):
 					# "fees": value.get("fees"),
 					# "networks": value.get("networks"),
 					# "limits": value.get("limits"),
+				} for key, value in response.items()
+			}
+
+			return output
+		elif MagicMethod.is_equivalent(method, MagicMethod.FETCH_DEPOSIT_ADDRESSES):
+			if response.get("info"):
+				del response["info"]
+
+			output = {
+				key: {
+					# "info": value.get("info"),
+					"currency": value.get("currency"),
+					"address": value.get("address"),
+					"network": value.get("network"),
+					"tag": value.get("tag"),
 				} for key, value in response.items()
 			}
 

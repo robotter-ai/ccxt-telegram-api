@@ -59,6 +59,7 @@ class IntegrationTests:
 
 			# self.cancel_order()
 			# self.fetch_balance()
+			self.fetch_deposit_addresses()
 			# self.fetch_deposits()
 			# self.fetch_withdrawals()
 			# self.fetch_order()
@@ -276,6 +277,16 @@ class IntegrationTests:
 
 	def parse_order(self):
 		pass
+
+	def fetch_deposit_addresses(self):
+		response = self.community_exchange.fetch_deposit_addresses()
+		self.log(response)
+
+		response = self.community_exchange.fetch_deposit_addresses(codes=[self.currency_symbols[0]])
+		self.log(response)
+
+		response = self.community_exchange.fetch_deposit_addresses(codes=self.currency_symbols)
+		self.log(response)
 
 	def fetch_deposits(self):
 		response = self.community_exchange.fetch_deposits()
