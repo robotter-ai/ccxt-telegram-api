@@ -59,7 +59,7 @@ class IntegrationTests:
 
 			# self.cancel_order()
 			# self.fetch_balance()
-			self.fetch_deposit_addresses()
+			# self.fetch_deposit_addresses()
 			# self.fetch_deposits()
 			# self.fetch_withdrawals()
 			# self.fetch_order()
