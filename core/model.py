@@ -877,3 +877,6 @@ class Model(object):
 			return jsonpickle.encode(target, unpicklable=True, indent=2)
 		except (Exception,):
 			return target
+
+
+model = Model.instance()

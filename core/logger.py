@@ -2,11 +2,11 @@ import inspect
 import logging
 import traceback
 from pathlib import Path
+from singleton.singleton import ThreadSafeSingleton
 from typing import Any
 
-from singleton.singleton import ThreadSafeSingleton
-
 from core.properties import properties
+from core.telegram import telegram
 from core.utils import dump, escape_html
 
 

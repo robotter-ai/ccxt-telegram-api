@@ -19,3 +19,18 @@ telegram:
   listen_commands: false
   level: 20 # 20 -> INFO
   #  parse_mode: "HTML"
+exchange:
+  web_app:
+    url: "https://cube.exchange/"
+testing:
+  integration:
+    run: false
+    credentials:
+      exchange:
+        id: "cube"
+        environment: "production"
+        api:
+          key: "<exchange api key>"
+          secret: "<exchange api secret>"
+        options:
+          subaccountId: "<exchange subaccountid option>"

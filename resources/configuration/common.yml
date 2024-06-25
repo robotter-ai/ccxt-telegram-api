@@ -19,3 +19,18 @@ telegram:
   listen_commands: false
   level: 30 # 30 -> WARNING
   parse_mode: "HTML"
+exchange:
+  web_app:
+    url: null
+testing:
+  integration:
+    run: false
+    credentials:
+      exchange:
+        id: null
+        environment: "production"
+        api:
+          key: null
+          secret: null
+        options:
+          subaccountId: null

@@ -1,10 +1,7 @@
-import traceback
-
-import logging
-
-from functools import wraps
-
 import asyncio
+import logging
+import traceback
+from functools import wraps
 
 from app import Telegram
 

@@ -29,38 +29,11 @@ from core.model import Model
 from core.properties import properties
 from core.telegram import Telegram
 from core.types import SystemStatus
-from integration_tests import IntegrationTests
+from tests.integration_tests import IntegrationTests
 
 ccxt = sync_ccxt
 
-EXCHANGE_WEB_APP_URL = os.getenv("EXCHANGE_WEB_APP_URL", "https://cube.exchange/")
-TELEGRAM_LISTEN_COMMANDS: bool = os.getenv("TELEGRAM_LISTEN_COMMANDS", "true").lower() in ["true", "1"]
-RUN_INTEGRATION_TESTS = os.getenv("RUN_INTEGRATION_TESTS", "false").lower() in ["true", "1"]
-
-UNAUTHORIZED_USER_MESSAGE = "Unauthorized user."
-
-community_exchange: CommunityExchange = getattr(ccxt, EXCHANGE_ID)({
-	"apiKey": EXCHANGE_API_KEY,
-	"secret": EXCHANGE_API_SECRET,
-	"options": {
-		"environment": EXCHANGE_ENVIRONMENT,
-		"subaccountId": EXCHANGE_SUB_ACCOUNT_ID,
-	}
-})
-
-pro_exchange: ProExchange = getattr(async_ccxt, EXCHANGE_ID)({
-	"apiKey": EXCHANGE_API_KEY,
-	"secret": EXCHANGE_API_SECRET,
-	"options": {
-		"environment": EXCHANGE_ENVIRONMENT,
-		"subaccountId": EXCHANGE_SUB_ACCOUNT_ID,
-	}
-})
-
-if EXCHANGE_ENVIRONMENT != "production":
-	community_exchange.set_sandbox_mode(True)
-	pro_exchange.set_sandbox_mode(True)
-
+RUN_INTEGRATION_TESTS = os.getenv("RUN_INTEGRATION_TESTS", properties.get_or_default("testing.integration.run", "false")).lower() in ["true", "1"]
 
 nest_asyncio.apply()
 root_path = Path(os.path.dirname(__file__)).absolute().as_posix()
@@ -83,13 +56,47 @@ unauthorized_exception = HTTPException(
 class Credentials(BaseModel):
 	exchangeId: str
 	exchangeEnvironment: str
-	userApiKey: str
-	userApiSecret: str
-	userSubAccountId: str
+	exchangeApiKey: str
+	exchangeApiSecret: str
+	exchangeOptions: dict[str, Any]
 
 	@property
 	def id(self):
-		return f"""{self.exchangeId}|{self.exchangeEnvironment}|{self.userApiKey}"""
+		return f"""{self.exchangeId}|{self.exchangeEnvironment}|{self.exchangeApiKey}"""
+
+
+def get_user(id: str) -> DotMap[str, Any]:
+	return properties.get_or_default(f"""users.{id}.exchange.credentials""", None)
+
+
+def set_user(credentials: Credentials) -> DotMap[str, Any]:
+	community_exchange: CommunityExchange = getattr(ccxt, credentials.exchangeId)({
+		"apiKey": credentials.exchangeApiKey,
+		"secret": credentials.exchangeApiSecret,
+		"options": {
+			"environment": credentials.exchangeEnvironment,
+			"subaccountId": credentials.exchangeOptions.get("subaccountid"),
+		}
+	})
+
+	pro_exchange: ProExchange = getattr(async_ccxt, credentials.exchangeId)({
+		"apiKey": credentials.exchangeApiKey,
+		"secret": credentials.exchangeApiSecret,
+		"options": {
+			"environment": credentials.exchangeEnvironment,
+			"subaccountId": credentials.exchangeOptions.get("subaccountid"),
+		}
+	})
+
+	if credentials.exchangeEnvironment != constants.environments.production:
+		community_exchange.set_sandbox_mode(True)
+		pro_exchange.set_sandbox_mode(True)
+
+	properties.set(f"""users.{credentials.id}.exchange.credentials""", credentials)
+	properties.set(f"""users.{credentials.id}.exchange.community""", community_exchange)
+	properties.set(f"""users.{credentials.id}.exchange.pro""", pro_exchange)
+
+	return properties.get_or_default(f"""users.{credentials.id}""")
 
 
 async def authenticate(credentials: Credentials):
@@ -197,6 +204,8 @@ async def auth_sign_in(request: Credentials, response: Response):
 	)
 
 	response.set_cookie(key="access_token", value=f"Bearer {token}", httponly=True, secure=True, samesite="lax", max_age=60 * 60 * 1000, path="/", domain="")
+
+	set_user(credentials)
 
 	return {"token": token, "type": constants.authentication.jwt.token.type}
 
@@ -319,6 +328,18 @@ def initialize():
 
 def test():
 	if RUN_INTEGRATION_TESTS:
+		raw_credentials = properties.get_or_default("testing.integration.credentials")
+		credentials = Credentials()
+		credentials.exchangeId = raw_credentials.get("exchange.id")
+		credentials.exchangeEnvironment = raw_credentials.get("exchange.environment")
+		credentials.exchangeApiKey = raw_credentials.get("exchange.api.key")
+		credentials.exchangeApiSecret = raw_credentials.get("exchange.api.secret")
+		credentials.exchangeOptions = raw_credentials.get("exchange.options")
+
+		user = set_user(credentials)
+		community_exchange = user.get("exchange.community")
+		pro_exchange = user.get("exchange.pro")
+
 		IntegrationTests.instance().initialize(
 			community_exchange,
 			pro_exchange,

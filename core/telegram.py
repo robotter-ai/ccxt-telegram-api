@@ -18,6 +18,9 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, Callbac
 
 ccxt = sync_ccxt
 
+TELEGRAM_LISTEN_COMMANDS: bool = os.getenv("TELEGRAM_LISTEN_COMMANDS", properties.get_or_default("telegram.listen_commands", "true")).lower() in ["true", "1"]
+EXCHANGE_WEB_APP_URL = os.getenv("EXCHANGE_WEB_APP_URL", properties.get_or_default("exchange.web_app.url", "https://cube.exchange/"))
+
 
 @handle_exceptions
 @ThreadSafeSingleton
@@ -874,3 +877,6 @@ class Telegram(object):
 				message_part = formatted[start:start + max_length]
 
 				await reply_method(message_part)
+
+
+telegram = Telegram.instance()

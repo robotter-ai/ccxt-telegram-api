@@ -1,7 +1,4 @@
 from dotmap import DotMap
-from enum import Enum
-
-from core.types import SystemStatus
 
 constants = DotMap({
 	"id": "ccxt-telegram-bot",
@@ -29,4 +26,13 @@ constants = DotMap({
 			}
 		}
 	},
+	"ccxt": {
+		"types": {
+			"community": "community",
+			"pro": "pro",
+		}
+	},
+	"errors": {
+		"unauthorized_user": "Unauthorized user."
+	}
 }, _dynamic=False)
