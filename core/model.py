@@ -98,14 +98,14 @@ class Model(object):
 
 		return False
 
-	async def get_balance(self, token_id: str):
-		balances = await self.get_balances()
+	async def get_balance(self, exchange, token_id: str):
+		balances = await self.get_balances(exchange)
 		balance = balances.get(token_id)
 
 		return balance
 
-	async def get_balances(self) -> Dict[str, Any]:
-		balances = community_exchange.fetch_balance()
+	async def get_balances(self, exchange) -> Dict[str, Any]:
+		balances = exchange.fetch_balance()
 
 		non_zero_balances_keys = {key for key, value in balances.get("total", {}).items() if value > 0}
 		non_zero_balances = {key: balances[key] for key in non_zero_balances_keys}
@@ -117,8 +117,8 @@ class Model(object):
 
 		return sorted_balances
 
-	async def get_open_orders(self, market_id: str):
-		response = community_exchange.fetch_open_orders(market_id)
+	async def get_open_orders(self, exchange, market_id: str):
+		response = exchange.fetch_open_orders(market_id)
 
 		output = [
 			{
@@ -156,8 +156,8 @@ class Model(object):
 
 		return output
 
-	async def market_buy_order(self, market_id: str, amount: float):
-		response = community_exchange.create_order(market_id, "market", "buy", amount)
+	async def market_buy_order(self, exchange, market_id: str, amount: float):
+		response = exchange.create_order(market_id, "market", "buy", amount)
 
 		output = {
 			'id': response.get("id"),
@@ -191,8 +191,8 @@ class Model(object):
 
 		return output
 
-	async def market_sell_order(self, market_id: str, amount: float):
-		response = community_exchange.create_order(market_id, "market", "sell", amount)
+	async def market_sell_order(self, exchange, market_id: str, amount: float):
+		response = exchange.create_order(market_id, "market", "sell", amount)
 
 		output = {
 			'id': response.get("id"),
@@ -226,8 +226,8 @@ class Model(object):
 
 		return output
 
-	async def limit_buy_order(self, market_id: str, amount: float, price: float):
-		response = community_exchange.create_order(market_id, "limit", "buy", amount, price)
+	async def limit_buy_order(self, exchange, market_id: str, amount: float, price: float):
+		response = exchange.create_order(market_id, "limit", "buy", amount, price)
 
 		output = {
 			'id': response.get("id"),
@@ -261,8 +261,8 @@ class Model(object):
 
 		return output
 
-	async def limit_sell_order(self, market_id: str, amount: float, price: float):
-		response = community_exchange.create_order(market_id, "limit", "sell", amount, price)
+	async def limit_sell_order(self, exchange, market_id: str, amount: float, price: float):
+		response = exchange.create_order(market_id, "limit", "sell", amount, price)
 
 		output = {
 			'id': response.get("id"),
@@ -296,8 +296,8 @@ class Model(object):
 
 		return output
 
-	async def place_order(self, market: str, order_type: OrderType, order_side: OrderSide, amount: float, price: float = None, stop_loss_price: float = None):
-		response = community_exchange.create_order(market, order_type, order_side, amount, price)
+	async def place_order(self, exchange, market: str, order_type: OrderType, order_side: OrderSide, amount: float, price: float = None, _stop_loss_price: float = None):
+		response = exchange.create_order(market, order_type, order_side, amount, price)
 		if response.get("status") == "rejected":
 			output = {'status': response.get('status')}
 		else:
@@ -333,8 +333,8 @@ class Model(object):
 
 		return output
 
-	def __getattr__(self, method_name):
-		attribute = getattr(community_exchange, method_name, None)
+	def __getattr__(self, exchange, method_name):
+		attribute = getattr(exchange, method_name, None)
 
 		if callable(attribute):
 			@async_handle_exceptions
@@ -680,7 +680,7 @@ class Model(object):
 
 			return output
 		elif MagicMethod.is_equivalent(method, MagicMethod.FETCH_ORDER):
-			output ={
+			output = {
 				'id': response.get('id'),
 				'clientOrderId': response.get('clientOrderId'),
 				'datetime': response.get('datetime'),
@@ -792,7 +792,6 @@ class Model(object):
 				# "quoteVolume": response.get("quoteVolume"),
 				# "info": response.get("info")
 			}
-
 
 			return output
 		elif MagicMethod.is_equivalent(method, MagicMethod.FETCH_TICKERS):

@@ -1,3 +1,5 @@
+import os
+
 import json
 import requests
 import textwrap
@@ -10,14 +12,18 @@ from typing import List
 import ccxt as sync_ccxt
 # noinspection PyUnresolvedReferences
 import ccxt.async_support as async_ccxt
+
+from core.constants import constants
 from core.decorators import handle_exceptions
 from core.model import Model
+from core.properties import properties
 from core.types import MagicMethod
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery, BotCommand, WebAppInfo, \
 	KeyboardButton, ReplyKeyboardMarkup
 
 ccxt = sync_ccxt
 
+TELEGRAM_TOKEN: bool = os.getenv("TELEGRAM_TOKEN", properties.get_or_default("telegram.token", None))
 TELEGRAM_LISTEN_COMMANDS: bool = os.getenv("TELEGRAM_LISTEN_COMMANDS", properties.get_or_default("telegram.listen_commands", "true")).lower() in ["true", "1"]
 EXCHANGE_WEB_APP_URL = os.getenv("EXCHANGE_WEB_APP_URL", properties.get_or_default("exchange.web_app.url", "https://cube.exchange/"))
 
@@ -112,7 +118,7 @@ class Telegram(object):
 		# noinspection PyBroadException
 		try:
 			if not self.is_admin(update.message.from_user.username):
-				await self.send_message(UNAUTHORIZED_USER_MESSAGE)
+				await self.send_message(constants.errors.unauthorized_user)
 
 				return False
 
@@ -853,7 +859,7 @@ class Telegram(object):
 					url=f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage",
 					params={
 						"text": message,
-						"chat_id": TELEGRAM_CHANNEL_ID,
+						"chat_id": get_chat_id(update, context, query),
 						"parse_mode": parse_mode,
 						"reply_markup": reply_markup,
 					}

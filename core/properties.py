@@ -105,9 +105,7 @@ class Properties(object):
 	def define_extra_properties(self):
 		self.set("resources_path", os.path.join(self.get("root_path"), "resources"))
 		self.set("resources_configuration_path", os.path.join(self.get("resources_path"), "configuration"))
-		self.set("resources_data_path", os.path.join(self.get("resources_path"), "data"))
 		self.set("resources_logs_path", os.path.join(self.get("resources_path"), "logs"))
-		self.set("resources_studies_path", os.path.join(self.get("resources_path"), "studies"))
 
 
 properties = Properties.instance()
