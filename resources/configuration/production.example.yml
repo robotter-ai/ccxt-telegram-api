@@ -1,0 +1,21 @@
+server:
+  environment: production
+  debug: false
+  #  host: 0.0.0.0
+  port: 50001
+  #  base_url: https://localhost:50001
+  authentication:
+    enforce: true
+    require:
+      token: true
+logging:
+  level: 20 # 20 -> INFO
+  #  levels: [10, 20, 30, 40, 50]
+  use_telegram: false
+#  directory: resources/logs
+#  format: '%(asctime)s %(levelname)s %(message)s'
+telegram:
+  enabled: false
+  listen_commands: false
+  level: 20 # 20 -> INFO
+  #  parse_mode: "HTML"

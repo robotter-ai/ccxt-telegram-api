@@ -33,25 +33,8 @@ from integration_tests import IntegrationTests
 
 ccxt = sync_ccxt
 
-# TODO check!!!
-logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.ERROR)
-
-TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
-TELEGRAM_CHANNEL_ID = os.getenv("TELEGRAM_CHANNEL_ID")
-TELEGRAM_LISTEN_COMMANDS: bool = os.getenv("TELEGRAM_LISTEN_COMMANDS", "true").lower() in ["true", "1"]
-
-administrator = os.getenv("TELEGRAM_ADMIN_USERNAME", "").strip().replace("@", "")
-administrators = os.getenv("TELEGRAM_ADMIN_USERNAMES", "").split(",")
-administrators = [username.strip().replace("@", "") for username in administrators if username.strip()]
-TELEGRAM_ADMIN_USERNAMES = [administrator] + administrators if administrator else administrators
-
-EXCHANGE_ID = os.getenv("EXCHANGE_ID", "cube")
-EXCHANGE_API_KEY = os.getenv("EXCHANGE_API_KEY")
-EXCHANGE_API_SECRET = os.getenv("EXCHANGE_API_SECRET")
-EXCHANGE_ENVIRONMENT = os.getenv("EXCHANGE_ENVIRONMENT", "production")
-EXCHANGE_SUB_ACCOUNT_ID = os.getenv("EXCHANGE_SUB_ACCOUNT_ID")
 EXCHANGE_WEB_APP_URL = os.getenv("EXCHANGE_WEB_APP_URL", "https://cube.exchange/")
-
+TELEGRAM_LISTEN_COMMANDS: bool = os.getenv("TELEGRAM_LISTEN_COMMANDS", "true").lower() in ["true", "1"]
 RUN_INTEGRATION_TESTS = os.getenv("RUN_INTEGRATION_TESTS", "false").lower() in ["true", "1"]
 
 UNAUTHORIZED_USER_MESSAGE = "Unauthorized user."
@@ -326,6 +309,9 @@ app.add_event_handler("shutdown", shutdown)
 
 
 def initialize():
+	# TODO check!!!
+	logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
+
 	asyncio.get_event_loop().run_until_complete(
 		Telegram.instance().initialize()
 	)
