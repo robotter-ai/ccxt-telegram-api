@@ -280,3 +280,11 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+
+# Custom
+resources/configuration/development.yml
+resources/configuration/staging.yml
+resources/configuration/production.yml
+resources/requests/http/http-client.private.env.json
+resources/logs/
+resources/temporary/
