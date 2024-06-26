@@ -25,7 +25,7 @@ from ccxt import Exchange as CommunityExchange
 from ccxt.async_support import Exchange as ProExchange
 from core import controller
 from core.constants import constants
-from core.model import Model
+from core.model import model
 from core.properties import properties
 from core.telegram_bot import telegram
 from core.types import SystemStatus
@@ -44,7 +44,7 @@ properties.load(app)
 from core.logger import logger
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login") # Check: should it be auth/signIn?!!!
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/signIn") # Check: should it be auth/signIn?!!!
 
 unauthorized_exception = HTTPException(
 	status_code=HTTP_401_UNAUTHORIZED,
@@ -69,7 +69,7 @@ def get_user(id: str) -> DotMap[str, Any]:
 	return properties.get_or_default(f"""users.{id}.exchange.credentials""", None)
 
 
-def set_user(credentials: Credentials) -> DotMap[str, Any]:
+def update_user(credentials: Credentials) -> DotMap[str, Any]:
 	community_exchange: CommunityExchange = getattr(ccxt, credentials.exchangeId)({
 		"apiKey": credentials.exchangeApiKey,
 		"secret": credentials.exchangeApiSecret,
@@ -97,6 +97,10 @@ def set_user(credentials: Credentials) -> DotMap[str, Any]:
 	properties.set(f"""users.{credentials.id}.exchange.pro""", pro_exchange)
 
 	return properties.get_or_default(f"""users.{credentials.id}""")
+
+
+def delete_user(id: str):
+	properties.set(f"""users.{id}""", None)
 
 
 async def authenticate(credentials: Credentials):
@@ -205,14 +209,18 @@ async def auth_sign_in(request: Credentials, response: Response):
 
 	response.set_cookie(key="access_token", value=f"Bearer {token}", httponly=True, secure=True, samesite="lax", max_age=60 * 60 * 1000, path="/", domain="")
 
-	set_user(credentials)
+	update_user(credentials)
 
 	return {"token": token, "type": constants.authentication.jwt.token.type}
 
 
 @app.post("/auth/signOut")
-async def auth_sign_out(_request: Request, response: Response):
+async def auth_sign_out(request: Request, response: Response):
+	await validate(request)
+
 	response.delete_cookie(key="access_token")
+
+	delete_user(request.get("id"))
 
 	return {"message": "Cookie successfully deleted."}
 
@@ -318,9 +326,6 @@ app.add_event_handler("shutdown", shutdown)
 
 
 def initialize():
-	# TODO check!!!
-	logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
-
 	asyncio.get_event_loop().run_until_complete(
 		telegram.initialize()
 	)
@@ -336,7 +341,7 @@ def test():
 		credentials.exchangeApiSecret = raw_credentials.get("exchange.api.secret")
 		credentials.exchangeOptions = raw_credentials.get("exchange.options")
 
-		user = set_user(credentials)
+		user = update_user(credentials)
 		community_exchange = user.get("exchange.community")
 		pro_exchange = user.get("exchange.pro")
 
@@ -344,7 +349,7 @@ def test():
 			community_exchange,
 			pro_exchange,
 			telegram,
-			Model.instance()
+			model.instance()
 		)
 
 		asyncio.get_event_loop().run_until_complete(

@@ -15,7 +15,7 @@ from typing import List
 
 from core.constants import constants
 from core.decorators import handle_exceptions
-from core.model import Model
+from core.model import model
 from core.properties import properties
 from core.types import MagicMethod
 
@@ -45,7 +45,7 @@ TELEGRAM_ADMIN_USERNAMES = TELEGRAM_ADMIN_USERNAMES + administrators
 class Telegram(object):
 
 	def __init__(self):
-		self.model = Model.instance()
+		self.model = model
 
 	# noinspection PyMethodMayBeStatic
 	async def initialize(self):

@@ -6,7 +6,7 @@ from singleton.singleton import ThreadSafeSingleton
 from typing import Any
 
 from core.properties import properties
-from core.telegram import telegram
+from core.telegram_bot import telegram
 from core.utils import dump, escape_html
 
 

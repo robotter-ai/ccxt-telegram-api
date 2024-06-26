@@ -3,22 +3,24 @@ import logging
 import traceback
 from functools import wraps
 
-from app import Telegram
-
 
 def sync_handle_exceptions(method):
 
 	@wraps(method)
 	def wrapper(*args, **kwargs):
+		# from core.telegram_bot import telegram
+
 		try:
 			return method(*args, **kwargs)
 		except Exception as exception:
 			try:
-				asyncio.get_event_loop().run_until_complete(
-					Telegram.instance().send_message(
-						str(exception)
-					)
-				)
+				pass
+				# TODO check!!!
+				# asyncio.get_event_loop().run_until_complete(
+				# 	telegram.send_message(
+				# 		str(exception)
+				# 	)
+				# )
 			except Exception as telegram_exception:
 				logging.error(traceback.format_exception(telegram_exception))
 
@@ -31,11 +33,15 @@ def async_handle_exceptions(method):
 
 	@wraps(method)
 	async def wrapper(*args, **kwargs):
+		# from core.telegram_bot import telegram
+
 		try:
 			return await method(*args, **kwargs)
 		except Exception as exception:
 			try:
-				await Telegram.instance().send_message(str(exception))
+				pass
+				# TODO check!!!
+				# await telegram.send_message(str(exception))
 			except Exception as telegram_exception:
 				logging.error(traceback.format_exception(telegram_exception))
 
