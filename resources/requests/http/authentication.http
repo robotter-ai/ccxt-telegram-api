@@ -1,15 +1,12 @@
-POST https://{{host}}:{{port}}/auth/signUp
+POST http://{{host}}:{{port}}/auth/signIn
 Content-Type: application/json
 
 {
-}
-
-###
-
-POST https://{{host}}:{{port}}/auth/signIn
-Content-Type: application/json
-
-{
+  "exchangeId": "{{exchangeId}}",
+  "exchangeEnvironment": "{{exchangeEnvironment}}",
+  "exchangeApiKey": "{{exchangeApiKey}}",
+  "exchangeApiSecret": "{{exchangeApiSecret}}",
+  "exchangeOptions": "{{exchangeOptions}}"
 }
 
 ###

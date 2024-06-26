@@ -357,8 +357,17 @@ def test():
 		)
 
 
+async def start_threads():
+	coroutines = [
+		asyncio.create_task(start_api()),
+		asyncio.to_thread(telegram.run())
+	]
+
+	await asyncio.gather(*coroutines, return_exceptions=True)
+
+
 def start():
-	telegram.run()
+	asyncio.run(start_threads())
 
 
 if __name__ == "__main__":
