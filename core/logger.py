@@ -25,7 +25,8 @@ class Logger(object):
 		format = properties.get('logging.format')
 
 		logger = logging.getLogger()
-		logger.setLevel(logging.DEBUG)
+		# TODO Update to use the configuration from the environment!!!
+		logger.setLevel(logging.INFO)
 
 		for level in self.levels:
 			file_handler = logging.FileHandler(f'{directory}/{str(logging.getLevelName(level)).lower()}.log', mode='a')
