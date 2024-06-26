@@ -6,7 +6,7 @@ Content-Type: application/json
   "exchangeEnvironment": "{{exchangeEnvironment}}",
   "exchangeApiKey": "{{exchangeApiKey}}",
   "exchangeApiSecret": "{{exchangeApiSecret}}",
-  "exchangeOptions": "{{exchangeOptions}}"
+  "exchangeOptions": {}
 }
 
 ###
