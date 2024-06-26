@@ -27,7 +27,7 @@ from core import controller
 from core.constants import constants
 from core.model import Model
 from core.properties import properties
-from core.telegram import Telegram
+from core.telegram_bot import telegram
 from core.types import SystemStatus
 from tests.integration_tests import IntegrationTests
 
@@ -322,7 +322,7 @@ def initialize():
 	logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
 
 	asyncio.get_event_loop().run_until_complete(
-		Telegram.instance().initialize()
+		telegram.initialize()
 	)
 
 
@@ -343,7 +343,7 @@ def test():
 		IntegrationTests.instance().initialize(
 			community_exchange,
 			pro_exchange,
-			Telegram.instance(),
+			telegram,
 			Model.instance()
 		)
 
@@ -353,7 +353,7 @@ def test():
 
 
 def start():
-	Telegram.instance().run()
+	telegram.run()
 
 
 if __name__ == "__main__":
