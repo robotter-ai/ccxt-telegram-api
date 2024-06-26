@@ -1,31 +1,43 @@
-import os
-
-import json
-import requests
-import textwrap
-from singleton.singleton import ThreadSafeSingleton
-from telegram.ext import Application, CommandHandler, ContextTypes, CallbackQueryHandler, filters, MessageHandler
-from typing import Any
-from typing import List
-
 # noinspection PyUnresolvedReferences
 import ccxt as sync_ccxt
 # noinspection PyUnresolvedReferences
 import ccxt.async_support as async_ccxt
+import json
+import os
+import requests
+import textwrap
+from singleton.singleton import ThreadSafeSingleton
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery, BotCommand, WebAppInfo, \
+	KeyboardButton, ReplyKeyboardMarkup
+from telegram.ext import Application, CommandHandler, ContextTypes, CallbackQueryHandler, filters, MessageHandler
+from typing import Any
+from typing import List
 
 from core.constants import constants
 from core.decorators import handle_exceptions
 from core.model import Model
 from core.properties import properties
 from core.types import MagicMethod
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery, BotCommand, WebAppInfo, \
-	KeyboardButton, ReplyKeyboardMarkup
 
 ccxt = sync_ccxt
 
+
+EXCHANGE_ID: bool = os.getenv("EXCHANGE_ID", properties.get_or_default("exchange.id", None))
 TELEGRAM_TOKEN: bool = os.getenv("TELEGRAM_TOKEN", properties.get_or_default("telegram.token", None))
+TELEGRAM_CHAT_ID: bool = os.getenv("TELEGRAM_CHANNEL_ID", properties.get_or_default("telegram.chat_id", None))
 TELEGRAM_LISTEN_COMMANDS: bool = os.getenv("TELEGRAM_LISTEN_COMMANDS", properties.get_or_default("telegram.listen_commands", "true")).lower() in ["true", "1"]
 EXCHANGE_WEB_APP_URL = os.getenv("EXCHANGE_WEB_APP_URL", properties.get_or_default("exchange.web_app.url", "https://cube.exchange/"))
+
+TELEGRAM_ADMIN_USERNAMES = []
+administrator = os.getenv("TELEGRAM_ADMIN_USERNAME", "").strip().replace("@", "")
+if administrator:
+	TELEGRAM_ADMIN_USERNAMES.append(administrator)
+administrators = os.getenv("TELEGRAM_ADMIN_USERNAMES", "").split(",")
+administrators = [username.strip().replace("@", "") for username in administrators if username.strip()]
+TELEGRAM_ADMIN_USERNAMES = TELEGRAM_ADMIN_USERNAMES + administrators
+administrators = properties.get_or_default("telegram.admin.users", [])
+administrators = [username.strip().replace("@", "") for username in administrators if username.strip()]
+TELEGRAM_ADMIN_USERNAMES = TELEGRAM_ADMIN_USERNAMES + administrators
 
 
 @handle_exceptions
@@ -840,12 +852,14 @@ class Telegram(object):
 				if update.message:
 					return update.message.chat_id
 				elif update.callback_query:
+					# noinspection PyUnresolvedReferences
 					return update.callback_query.message.chat_id
 
-			return TELEGRAM_CHANNEL_ID
+			return TELEGRAM_CHAT_ID
 
 		def get_reply_method(update: Update, context: ContextTypes.DEFAULT_TYPE, query: CallbackQuery, parse_mode: str = None, reply_markup: Any = None):
 			async def query_send(message: str):
+				# noinspection PyUnresolvedReferences
 				return await query.message.reply_text(message, parse_mode=parse_mode, reply_markup=reply_markup)
 
 			async def update_send(message: str):

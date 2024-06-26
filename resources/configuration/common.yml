@@ -17,9 +17,15 @@ logging:
 telegram:
   enabled: false
   listen_commands: false
+  token: null
+  chat_id: null
   level: 30 # 30 -> WARNING
   parse_mode: "HTML"
+  admin:
+    users: []
 exchange:
+  id: null
+  environment: null
   web_app:
     url: null
 testing:
@@ -27,8 +33,6 @@ testing:
     run: false
     credentials:
       exchange:
-        id: null
-        environment: "production"
         api:
           key: null
           secret: null
