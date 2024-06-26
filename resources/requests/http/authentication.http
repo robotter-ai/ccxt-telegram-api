@@ -1,0 +1,26 @@
+POST https://{{host}}:{{port}}/auth/signUp
+Content-Type: application/json
+
+{
+}
+
+###
+
+POST https://{{host}}:{{port}}/auth/signIn
+Content-Type: application/json
+
+{
+}
+
+###
+
+POST https://{{host}}:{{port}}/auth/signOut
+Authorization: Bearer {{token}}
+
+###
+
+POST https://{{host}}:{{port}}/auth/refresh
+Authorization: Bearer {{token}}
+
+###
+
