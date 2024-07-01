@@ -1,4 +1,4 @@
-GET https://{{host}}:{{port}}/service/status
+GET http://{{host}}:{{port}}/service/status
 Authorization: Bearer {{token}}
 
 ###

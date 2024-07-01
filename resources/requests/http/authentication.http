@@ -6,18 +6,19 @@ Content-Type: application/json
   "exchangeEnvironment": "{{exchangeEnvironment}}",
   "exchangeApiKey": "{{exchangeApiKey}}",
   "exchangeApiSecret": "{{exchangeApiSecret}}",
-  "exchangeOptions": {}
+  "exchangeOptions": {
+    "subAccountId": "{{exchangeOptionsSubAccountId}}"
+  }
 }
 
 ###
 
-POST https://{{host}}:{{port}}/auth/signOut
+POST http://{{host}}:{{port}}/auth/signOut
 Authorization: Bearer {{token}}
 
 ###
 
-POST https://{{host}}:{{port}}/auth/refresh
+POST http://{{host}}:{{port}}/auth/refresh
 Authorization: Bearer {{token}}
 
 ###
-

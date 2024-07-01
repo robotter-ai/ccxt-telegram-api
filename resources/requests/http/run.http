@@ -1,0 +1,15 @@
+GET http://{{host}}:{{port}}/run/
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "exchangeId": "{{exchangeId}}",
+  "environment": "{{exchangeEnvironment}}",
+  "method": "fetch_ticker",
+  "parameters": {
+    "symbol": "BTC/USDT"
+  }
+}
+
+###
+

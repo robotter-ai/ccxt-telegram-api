@@ -78,9 +78,9 @@ class MagicMethod(Enum):
 
 
 class Protocol(Enum):
-	REST = "REST"
-	WebSocket = "WebSocket"
-	FIX = "FIX"
+	REST = "rest"
+	WebSocket = "websocket"
+	FIX = "fix"
 
 
 class APIRequest:

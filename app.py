@@ -15,20 +15,20 @@ from pathlib import Path
 from pydantic import BaseModel
 from starlette.requests import Request
 from starlette.status import HTTP_401_UNAUTHORIZED
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 # noinspection PyUnresolvedReferences
 import ccxt as sync_ccxt
 # noinspection PyUnresolvedReferences
 import ccxt.async_support as async_ccxt
-from ccxt import Exchange as CommunityExchange
-from ccxt.async_support import Exchange as ProExchange
+from ccxt import Exchange as RESTExchange
+from ccxt.async_support import Exchange as WebSocketExchange
 from core import controller
 from core.constants import constants
 from core.model import model
 from core.properties import properties
 from core.telegram_bot import telegram
-from core.types import SystemStatus, APIResponse, CCXTAPIRequest
+from core.types import SystemStatus, APIResponse, CCXTAPIRequest, Protocol, Environment
 from core.utils import deep_merge
 from tests.integration_tests import IntegrationTests
 
@@ -55,32 +55,43 @@ unauthorized_exception = HTTPException(
 
 
 class Credentials(BaseModel):
+	jwtToken: Optional[str] = None
 	exchangeId: str
-	exchangeEnvironment: str
+	exchangeEnvironment: Optional[str] = Environment.PRODUCTION.value
+	exchangeProtocol: Optional[str] = Protocol.REST.value
 	exchangeApiKey: str
 	exchangeApiSecret: str
-	exchangeOptions: dict[str, Any]
+	exchangeOptions: Optional[dict[str, Any]] = None
 
 	@property
 	def id(self):
 		return f"""{self.exchangeId}|{self.exchangeEnvironment}|{self.exchangeApiKey}"""
 
 
-def get_user(id: str) -> DotMap[str, Any]:
-	return properties.get_or_default(f"""users.{id}.exchange.credentials""", None)
+def get_user(idOrJwtToken: str) -> Optional[DotMap[str, Any]]:
+	user = properties.get_or_default(f"""users.{id}""", None)
+
+	if not user:
+		user_id = properties.get_or_default(f"""tokens.{idOrJwtToken}""")
+		user = properties.get_or_default(f"""users.{user_id}""", None)
+
+	if user:
+		return DotMap(user, _dynamic=False)
+
+	return None
 
 
 def update_user(credentials: Credentials) -> DotMap[str, Any]:
-	community_exchange: CommunityExchange = getattr(ccxt, credentials.exchangeId)({
+	rest_exchange: RESTExchange = getattr(ccxt, credentials.exchangeId)({
 		"apiKey": credentials.exchangeApiKey,
 		"secret": credentials.exchangeApiSecret,
 		"options": {
 			"environment": credentials.exchangeEnvironment,
-			"subaccountId": credentials.exchangeOptions.get("subaccountid"),
+			"subaccountId": credentials.exchangeOptions.get("subAccountId"),
 		}
 	})
 
-	pro_exchange: ProExchange = getattr(async_ccxt, credentials.exchangeId)({
+	websocket_exchange: WebSocketExchange = getattr(async_ccxt, credentials.exchangeId)({
 		"apiKey": credentials.exchangeApiKey,
 		"secret": credentials.exchangeApiSecret,
 		"options": {
@@ -90,18 +101,25 @@ def update_user(credentials: Credentials) -> DotMap[str, Any]:
 	})
 
 	if credentials.exchangeEnvironment != constants.environments.production:
-		community_exchange.set_sandbox_mode(True)
-		pro_exchange.set_sandbox_mode(True)
+		rest_exchange.set_sandbox_mode(True)
+		websocket_exchange.set_sandbox_mode(True)
 
-	properties.set(f"""users.{credentials.id}.exchange.credentials""", credentials)
-	properties.set(f"""users.{credentials.id}.exchange.community""", community_exchange)
-	properties.set(f"""users.{credentials.id}.exchange.pro""", pro_exchange)
+	properties.set(f"""users.{credentials.id}.id""", credentials.id)
+	properties.set(f"""users.{credentials.id}.exchange.{credentials.exchangeId}.{credentials.exchangeEnvironment}.credentials""", credentials)
+	properties.set(f"""users.{credentials.id}.exchange.{credentials.exchangeId}.{credentials.exchangeEnvironment}.{Protocol.REST.value}""", rest_exchange)
+	properties.set(f"""users.{credentials.id}.exchange.{credentials.exchangeId}.{credentials.exchangeEnvironment}.{Protocol.WebSocket.value}""", websocket_exchange)
+
+	properties.set(f"""tokens.{credentials.jwtToken}""", credentials.id)
 
 	return properties.get_or_default(f"""users.{credentials.id}""")
 
 
-def delete_user(id: str):
-	properties.set(f"""users.{id}""", None)
+def delete_user(idOrJwtToken: str):
+	user = get_user(idOrJwtToken)
+
+	if user:
+		properties.set(f"""users.{user.id}""", None)
+		# properties.set(f"""tokens.{token}""", None)
 
 
 async def authenticate(credentials: Credentials):
@@ -210,6 +228,8 @@ async def auth_sign_in(request: Credentials, response: Response):
 
 	response.set_cookie(key="access_token", value=f"Bearer {token}", httponly=True, secure=True, samesite="lax", max_age=60 * 60 * 1000, path="/", domain="")
 
+	credentials.jwtToken = token
+
 	update_user(credentials)
 
 	return {"token": token, "type": constants.authentication.jwt.token.type}
@@ -249,22 +269,22 @@ async def service_status(request: Request) -> Dict[str, Any]:
 	}).toDict()
 
 
-@app.get("/ccxt/")
-@app.post("/ccxt/")
-@app.put("/ccxt/")
-@app.delete("/ccxt/")
-@app.patch("/ccxt/")
-@app.head("/ccxt/")
-@app.options("/ccxt/")
-@app.get("/ccxt/{subpath:path}")
-@app.post("/ccxt/{subpath:path}")
-@app.post("/ccxt/{subpath:path}")
-@app.put("/ccxt/{subpath:path}")
-@app.delete("/ccxt/{subpath:path}")
-@app.patch("/ccxt/{subpath:path}")
-@app.head("/ccxt/{subpath:path}")
-@app.options("/ccxt/{subpath:path}")
-async def ccxt(request: Request) -> APIResponse:
+@app.get("/run/")
+@app.post("/run/")
+@app.put("/run/")
+@app.delete("/run/")
+@app.patch("/run/")
+@app.head("/run/")
+@app.options("/run/")
+@app.get("/run/{subpath:path}")
+@app.post("/run/{subpath:path}")
+@app.post("/run/{subpath:path}")
+@app.put("/run/{subpath:path}")
+@app.delete("/run/{subpath:path}")
+@app.patch("/run/{subpath:path}")
+@app.head("/run/{subpath:path}")
+@app.options("/run/{subpath:path}")
+async def run(request: Request) -> APIResponse:
 	await validate(request)
 
 	headers = DotMap(dict(request.headers))
@@ -279,26 +299,32 @@ async def ccxt(request: Request) -> APIResponse:
 		body = DotMap({})
 
 	parameters = DotMap({}, _dynamic=False)
-	parameters = deep_merge(
+	parameters = DotMap(deep_merge(
 		parameters.toDict(),
 		headers
-	)
-	parameters = deep_merge(
+	), _dynamic=False)
+	parameters = DotMap(deep_merge(
 		parameters.toDict(),
 		path_parameters
-	)
-	parameters = deep_merge(
+	), _dynamic=False)
+	parameters = DotMap(deep_merge(
 		parameters.toDict(),
 		query_parameters
-	)
-	parameters = deep_merge(
+	), _dynamic=False)
+	parameters = DotMap(deep_merge(
 		parameters.toDict(),
 		body.toDict()
-	)
+	), _dynamic=False)
+	parameters = DotMap(deep_merge(
+		parameters.toDict(),
+		request.cookies
+	), _dynamic=False)
+
+	user = get_user(parameters.get("access_token"))
 
 	options = CCXTAPIRequest(
-		user_id=parameters.get("user_id"),
-		exchange_id=parameters.get("exchange_id"),
+		user_id=user.id if user else None,
+		exchange_id=parameters.get("exchangeId"),
 		exchange_environment=parameters.get("environment"),
 		exchange_protocol=parameters.get("protocol"),
 		exchange_method=parameters.get("method"),
@@ -373,12 +399,12 @@ def test():
 		credentials.exchangeOptions = raw_credentials.get("exchange.options")
 
 		user = update_user(credentials)
-		community_exchange = user.get("exchange.community")
-		pro_exchange = user.get("exchange.pro")
+		rest_exchange = user.get("exchange.rest")
+		websocket_exchange = user.get("exchange.websocket")
 
 		IntegrationTests.instance().initialize(
-			community_exchange,
-			pro_exchange,
+			rest_exchange,
+			websocket_exchange,
 			telegram,
 			model.instance()
 		)
