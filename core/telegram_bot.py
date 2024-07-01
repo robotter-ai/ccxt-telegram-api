@@ -60,6 +60,7 @@ class Telegram(object):
 			BotCommand("cancel_order", "<orderId or clientOrderId> | Cancel a specific order from a market"),
 			BotCommand("create_order", "<marketId> <limit/market> <buy/sell> <amount> <price> | Place an order"),
 			BotCommand("describe", "| Bring all information about the exchange"),
+			# BotCommand("exchanges", "| List all available exchanges"),
 			BotCommand("fetch_balance", "| Fetch all balances from the user"),
 			BotCommand("fetch_closed_orders", "<marketId> | Fetch all closed orders from a market"),
 			BotCommand("fetch_currencies", "| Fetch all currencies"),
@@ -69,8 +70,9 @@ class Telegram(object):
 			BotCommand("fetch_markets", "| Fetch all markets"),
 			BotCommand("fetch_my_trades", "<marketId> | Fetch all user trades from a market"),
 			BotCommand("fetch_ohlcv", "<marketId> | Fetch the OHLCV (open, high, low, close, volume) from a market"),
+			BotCommand("fetch_open_order", "<orderId or clientOrderId> <marketId> | Fetch a specific open order from a market"),
 			BotCommand("fetch_open_orders", "<marketId> | Fetch all open orders from a market"),
-			BotCommand("fetch_order", "<orderId or clientOrderId> | Fetch a specific order from a market"),
+			BotCommand("fetch_order", "<orderId or clientOrderId> <marketId> | Fetch a specific order from a market"),
 			BotCommand("fetch_order_book", "<marketId> | Fetch the order book from a market"),
 			BotCommand("fetch_orders", "<marketId> | Fetch all orders from a market"),
 			BotCommand("fetch_orders_all_markets", "| Fetch all orders from all markets"),
@@ -88,6 +90,7 @@ class Telegram(object):
 			BotCommand("place_limit_sell_order", "<marketId> <amount> <price> | Place a limit sell order"),
 			BotCommand("place_order", "<limit/market> <buy/sell> <marketId> <amount> <price> | Place a custom order"),
 			BotCommand("set_sandbox_mode", "<true/false> | Enable or disable the sandbox mode"),
+			# BotCommand("switch_exchange", "<exchangeId> | Switch to another exchange"),
 			BotCommand("withdraw", "<currencyId> <amount> <destinationAddress> <tag>| Withdraw funds from a currency to an address"),
 		]
 		await self.application.bot.set_my_commands(commands)
@@ -96,6 +99,7 @@ class Telegram(object):
 		self.application.add_handler(CommandHandler("help", self.help))
 		self.application.add_handler(CommandHandler("balance", self.get_balance))
 		self.application.add_handler(CommandHandler("balances", self.get_balances))
+		# self.application.add_handler(CommandHandler("exchanges", self.get_exchanges))
 		self.application.add_handler(CommandHandler("openOrders", self.get_open_orders))
 		self.application.add_handler(CommandHandler("open_orders", self.get_open_orders))
 		self.application.add_handler(CommandHandler("placeMarketBuyOrder", self.market_buy_order))
@@ -108,6 +112,7 @@ class Telegram(object):
 		self.application.add_handler(CommandHandler("place_limit_sell_order", self.limit_sell_order))
 		self.application.add_handler(CommandHandler("placeOrder", self.place_order))
 		self.application.add_handler(CommandHandler("place_order", self.place_order))
+		# self.application.add_handler(CommandHandler("switch_exchange", self.switch_exchange))
 
 		self.application.add_handler(CallbackQueryHandler(self.button_handler))
 		self.application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, self.text_handler))
