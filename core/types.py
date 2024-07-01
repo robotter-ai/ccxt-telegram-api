@@ -29,6 +29,7 @@ class SystemStatus(Enum):
 
 		raise ValueError(f"""Status with id "{id_}" not found.""")
 
+
 class MagicMethod(Enum):
 	CANCEL_ALL_ORDERS = "cancelAllOrders"
 	CANCEL_ORDER = "cancelOrder"
@@ -42,6 +43,7 @@ class MagicMethod(Enum):
 	FETCH_MARKETS = "fetchMarkets"
 	FETCH_MY_TRADES = "fetchMyTrades"
 	FETCH_OHLCV = "fetchOHLCV"
+	FETCH_OPEN_ORDER = "fetchOpenOrder"
 	FETCH_OPEN_ORDERS = "fetchOpenOrders"
 	FETCH_ORDER = "fetchOrder"
 	FETCH_ORDER_BOOK = "fetchOrderBook"
