@@ -28,7 +28,8 @@ from core.constants import constants
 from core.model import model
 from core.properties import properties
 from core.telegram_bot import telegram
-from core.types import SystemStatus
+from core.types import SystemStatus, APIResponse, CCXTAPIRequest
+from core.utils import deep_merge
 from tests.integration_tests import IntegrationTests
 
 ccxt = sync_ccxt
@@ -263,18 +264,48 @@ async def service_status(request: Request) -> Dict[str, Any]:
 @app.patch("/ccxt/{subpath:path}")
 @app.head("/ccxt/{subpath:path}")
 @app.options("/ccxt/{subpath:path}")
-async def ccxt(request: Request) -> Dict[str, Any]:
+async def ccxt(request: Request) -> APIResponse:
 	await validate(request)
 
-	paths = DotMap(request.path_params)
-	parameters = DotMap(request.query_params)
-	try:
-		body = DotMap(await request.json())
-	except:
-		body = DotMap({})
 	headers = DotMap(dict(request.headers))
 
-	return await controller.ccxt(body)
+	path_parameters = DotMap(request.path_params)
+
+	query_parameters = DotMap(request.query_params)
+	# noinspection PyBroadException,PyUnusedLocal
+	try:
+		body = DotMap(await request.json())
+	except Exception as exception:
+		body = DotMap({})
+
+	parameters = DotMap({}, _dynamic=False)
+	parameters = deep_merge(
+		parameters.toDict(),
+		headers
+	)
+	parameters = deep_merge(
+		parameters.toDict(),
+		path_parameters
+	)
+	parameters = deep_merge(
+		parameters.toDict(),
+		query_parameters
+	)
+	parameters = deep_merge(
+		parameters.toDict(),
+		body.toDict()
+	)
+
+	options = CCXTAPIRequest(
+		user_id=parameters.get("user_id"),
+		exchange_id=parameters.get("exchange_id"),
+		exchange_environment=parameters.get("environment"),
+		exchange_protocol=parameters.get("protocol"),
+		exchange_method=parameters.get("method"),
+		exchange_method_parameters=parameters.get("parameters")
+	)
+
+	return await controller.ccxt(options)
 
 
 async def start_api():

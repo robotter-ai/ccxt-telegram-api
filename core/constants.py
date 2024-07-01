@@ -26,12 +26,6 @@ constants = DotMap({
 			}
 		}
 	},
-	"ccxt": {
-		"types": {
-			"community": "community",
-			"pro": "pro",
-		}
-	},
 	"errors": {
 		"unauthorized_user": "Unauthorized user."
 	}

@@ -1,6 +1,13 @@
-from typing import Any
-
+from dataclasses import dataclass
+from dotmap import DotMap
 from enum import Enum
+from typing import Any, Dict
+
+
+class Environment(Enum):
+	PRODUCTION = "production"
+	STAGING = "staging"
+	DEVELOPMENT = "development"
 
 
 class HttpMethod(Enum):
@@ -68,3 +75,47 @@ class MagicMethod(Enum):
 				return method
 
 		raise ValueError(f"""Unrecognized magic method "{target}".""")
+
+
+class Protocol(Enum):
+	REST = "REST"
+	WebSocket = "WebSocket"
+	FIX = "FIX"
+
+
+class APIRequest:
+	pass
+
+
+@dataclass
+class CCXTAPIRequest(APIRequest):
+	user_id: str
+	exchange_id: str
+	exchange_environment: str
+	exchange_protocol: Protocol
+	exchange_method: str
+	exchange_method_parameters: DotMap[str, Any] = None
+
+
+@dataclass
+class APIResponse:
+	title: str
+	message: str
+	status: str
+	result: Dict[str, Any] | Any
+
+	def __init__(self):
+		pass
+
+
+class CCXTAPIResponse(APIResponse):
+	pass
+
+
+class APIResponseStatus(Enum):
+	SUCCESS = "success"
+	ATTRIBUTE_NOT_FOUND_ERROR = "attribute_not_found_error"
+	ATTRIBUTE_NOT_AVAILABLE_ERROR = "attribute_not_available_error"
+	EXCHANGE_NOT_AVAILABLE_ERROR = "exchange_not_available_error"
+	METHOD_EXECUTION_ERROR = "method_execution_error"
+	UNKNOWN_ERROR = "unknown_error"
