@@ -26,18 +26,19 @@ telegram:
   #  parse_mode: "HTML"
   admin:
     users: []
-exchange:
-  id: "cube"
-  environment: "staging"
-  web_app:
-    url: "https://dev.cube.exchange/"
+exchanges:
+  default: "cube"
+  available:
+    cube:
+      environment: "staging"
+      api:
+        key: "<exchange api key>"
+        secret: "<exchange api secret>"
+        password: "<exchange api password>"
+      web_app:
+        url: "https://dev.cube.exchange/"
+      options:
+        <option key>: "<option value>"
 testing:
   integration:
-    run: false
-    credentials:
-      exchange:
-        api:
-          key: "<exchange api key>"
-          secret: "<exchange api secret>"
-        options:
-          subaccountId: "<exchange subaccountid option>"
+    run: true
