@@ -1,5 +1,3 @@
-from dotmap import DotMap
-
 from core.properties import properties
 from core.types import APIResponseStatus, CCXTAPIRequest, CCXTAPIResponse, Environment, Protocol
 
