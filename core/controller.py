@@ -25,7 +25,10 @@ async def ccxt(request: CCXTAPIRequest) -> CCXTAPIResponse:
 					response.title = f"""{exchange_id}.{exchange_method}"""
 					response.message = f"""Successfully executed "{exchange_id}.{exchange_method}(***)"."""
 					response.status = APIResponseStatus.SUCCESS
-					response.result = attribute(**exchange_method_parameters)
+					if exchange_method_parameters is None:
+						response.result = attribute()
+					else:
+						response.result = attribute(**exchange_method_parameters)
 
 					return response
 				except Exception as exception:

@@ -90,6 +90,7 @@ class Telegram(object):
 			BotCommand("place_limit_sell_order", "<marketId> <amount> <price> | Place a limit sell order"),
 			BotCommand("place_order", "<limit/market> <buy/sell> <marketId> <amount> <price> | Place a custom order"),
 			BotCommand("set_sandbox_mode", "<true/false> | Enable or disable the sandbox mode"),
+			# BotCommand("strategy", "<start|stop|status> | Start, stop or retrieve the status from the strategy."),
 			# BotCommand("switch_exchange", "<exchangeId> | Switch to another exchange"),
 			BotCommand("withdraw", "<currencyId> <amount> <destinationAddress> <tag>| Withdraw funds from a currency to an address"),
 		]
@@ -112,6 +113,7 @@ class Telegram(object):
 		self.application.add_handler(CommandHandler("place_limit_sell_order", self.limit_sell_order))
 		self.application.add_handler(CommandHandler("placeOrder", self.place_order))
 		self.application.add_handler(CommandHandler("place_order", self.place_order))
+		# self.application.add_handler(CommandHandler("strategy", self.strategy))
 		# self.application.add_handler(CommandHandler("switch_exchange", self.switch_exchange))
 
 		self.application.add_handler(CallbackQueryHandler(self.button_handler))
