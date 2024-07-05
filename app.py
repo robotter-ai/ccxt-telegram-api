@@ -1,3 +1,5 @@
+import traceback
+
 import asyncio
 import atexit
 import datetime
@@ -172,6 +174,8 @@ async def validate_token(request: Request | WebSocket) -> bool:
 
 		return True
 	except Exception as exception:
+		logger.log(logging.DEBUG, traceback.format_exc())
+
 		return False
 
 
@@ -252,7 +256,7 @@ async def auth_refresh(request: Request, response: Response):
 
 	token_expiration_delta = datetime.timedelta(minutes=constants.authentication.jwt.token.expiration)
 	token = create_jwt_token(
-		data={"sub": request.get("id")}, expires_delta=token_expiration_delta
+		data={"sub": str(request.get("id"))}, expires_delta=token_expiration_delta
 	)
 
 	response.set_cookie(key="access_token", value=f"Bearer {token}", httponly=True, secure=True, samesite="lax", max_age=60 * 60 * 1000, path="/", domain="")
@@ -269,13 +273,13 @@ async def service_status(request: Request) -> Dict[str, Any]:
 	}).toDict()
 
 
-@app.get("/run/")
-@app.post("/run/")
-@app.put("/run/")
-@app.delete("/run/")
-@app.patch("/run/")
-@app.head("/run/")
-@app.options("/run/")
+@app.get("/run")
+@app.post("/run")
+@app.put("/run")
+@app.delete("/run")
+@app.patch("/run")
+@app.head("/run")
+@app.options("/run")
 @app.get("/run/{subpath:path}")
 @app.post("/run/{subpath:path}")
 @app.post("/run/{subpath:path}")
@@ -320,7 +324,7 @@ async def run(request: Request) -> APIResponse:
 		request.cookies
 	), _dynamic=False)
 
-	user = get_user(parameters.get("access_token"))
+	user = get_user(str(parameters.get("access_token")).removeprefix('Bearer '))
 
 	options = CCXTAPIRequest(
 		user_id=user.id if user else None,
