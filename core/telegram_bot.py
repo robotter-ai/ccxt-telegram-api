@@ -1,3 +1,5 @@
+from dotmap import DotMap
+
 # noinspection PyUnresolvedReferences
 import ccxt as sync_ccxt
 # noinspection PyUnresolvedReferences
@@ -13,6 +15,7 @@ from telegram.ext import Application, CommandHandler, ContextTypes, CallbackQuer
 from typing import Any
 from typing import List
 
+from app import Credentials
 from core.constants import constants
 from core.decorators import handle_exceptions
 from core.model import model
@@ -54,6 +57,7 @@ class Telegram(object):
 		commands = [
 			BotCommand("start", "| Starts the bot"),
 			BotCommand("help", "| Provides help information"),
+			BotCommand("sign_in", "| Authenticate the user to enable private operations"),
 			BotCommand("balance", "<tokenId> | Get your balance"),
 			BotCommand("balances", "| Get all balances"),
 			BotCommand("cancel_all_orders", "<marketId> | Cancel all open orders from a market"),
@@ -98,6 +102,10 @@ class Telegram(object):
 
 		self.application.add_handler(CommandHandler("start", self.start))
 		self.application.add_handler(CommandHandler("help", self.help))
+		self.application.add_handler(CommandHandler("signIn", self.sign_in))
+		self.application.add_handler(CommandHandler("sign_in", self.sign_in))
+		self.application.add_handler(CommandHandler("signOut", self.sign_out))
+		self.application.add_handler(CommandHandler("sign_out", self.sign_out))
 		self.application.add_handler(CommandHandler("balance", self.get_balance))
 		self.application.add_handler(CommandHandler("balances", self.get_balances))
 		# self.application.add_handler(CommandHandler("exchanges", self.get_exchanges))
@@ -151,6 +159,18 @@ class Telegram(object):
 		await query.answer()
 		data = query.data
 
+		if data == "sign_in":
+			# context.user_data["sign_in"] = {}
+			context.user_data["sign_in"] = {
+				"exchange_id": properties.get_or_default("exchange.id", "cube"),
+				"exchange_environment": properties.get_or_default("exchange.environment", "production"),
+			}
+			await self.send_message("Enter your exchange API key. Ex.: a1aa22be-0aa0-b54a-80c1-fa9e111112c2", update, context, query)
+			context.user_data["sign_in_step"] = "ask_exchange_api_key"
+		if data == "sign_out":
+			context.user_data["sign_out"] = {}
+			await self.send_message("""Are you sure that you want to sign out? Type "confirm" to sign out or "cancel" to abort.""", update, context, query)
+			context.user_data["sign_out_step"] = "confirm"
 		if data == "balance":
 			context.user_data["balance"] = ""
 			await self.send_message("Enter the token id. Ex: btc", update, context, query)
@@ -199,7 +219,75 @@ class Telegram(object):
 		data = context.user_data
 		text = update.message.text
 
-		if "balance_step" in data:
+		if "sign_in_step" in data:
+			if data["sign_in_step"] == "ask_exchange_id":
+				if self.model.validate_exchange_id(text):
+					data["sign_in"]["exchange_id"] = self.model.sanitize_exchange_id(text)
+					data["sign_in_step"] = "ask_exchange_environment"
+					await update.message.delete()
+					await self.send_message("""Enter the exchange environment ("production", "staging", "development")""", update, context, query)
+				else:
+					await self.send_message(f"""Please enter a valid exchange id. Ex.: {properties.get_or_default("exchange.id")}""", update, context, query)
+			elif data["sign_in_step"] == "ask_exchange_environment":
+				if self.model.validate_exchange_environment(text):
+					data["sign_in"]["exchange_environment"] = self.model.sanitize_exchange_environment(text)
+					data["sign_in_step"] = "ask_exchange_api_key"
+					await update.message.delete()
+					await self.send_message("""Enter the exchange API key. Ex.: a1aa22be-0aa0-b54a-80c1-fa9e111112c2""", update, context, query)
+				else:
+					await self.send_message("""Please enter a valid exchange environment("production", "staging", "development").""", update, context, query)
+			elif data["sign_in_step"] == "ask_exchange_api_key":
+				if self.model.validate_exchange_api_key(text):
+					data["sign_in"]["exchange_api_key"] = self.model.sanitize_exchange_api_key(text)
+					data["sign_in_step"] = "ask_exchange_api_secret"
+					await update.message.delete()
+					await self.send_message("""Enter the exchange API secret. Ex.: abcdef010f6e98a4124e0a08bbf869d3cf1c999999999731fc7de20a9ea001ba""", update, context, query)
+				else:
+					await self.send_message("""Please enter a valid exchange API key. Ex.: a1aa22be-0aa0-b54a-80c1-fa9e111112c2""", update, context, query)
+			elif data["sign_in_step"] == "ask_exchange_api_secret":
+				if self.model.validate_exchange_api_secret(text):
+					data["sign_in"]["exchange_api_secret"] = self.model.sanitize_exchange_api_secret(text)
+					data["sign_in_step"] = "ask_exchange_options_sub_account_id"
+					await update.message.delete()
+					await self.send_message("""Enter your sub account ID (optional). Ex.: 123""", update, context, query)
+				else:
+					await self.send_message("""Please enter a valid exchange API secret. Ex.: abcdef010f6e98a4124e0a08bbf869d3cf1c999999999731fc7de20a9ea001ba""", update, context, query)
+			elif data["sign_in_step"] == "ask_exchange_options_sub_account_id":
+				if self.model.validate_exchange_options_sub_account_id(text):
+					data["sign_in"]["exchange_options"] = {}
+					data["sign_in"]["exchange_options"]["sub_account_id"] = self.model.sanitize_exchange_options_sub_account_id(text)
+					data["sign_in_step"] = "confirm"
+					await update.message.delete()
+					formatted = self.model.beautify(data["sign_in"])
+					await self.send_message(f"""Review your credentials and type "confirm" to sign in or "cancel" to abort.\n\n{formatted}""", update, context, query)
+				else:
+					await self.send_message("""Please enter a valid sub account id (optional). Ex.: 123""", update, context, query)
+			elif data["sign_in_step"] == "confirm":
+				text = text.lower()
+				if text == "confirm":
+					try:
+						await self.sign_in(update, context, query, data["sign_in"])
+					finally:
+						data.clear()
+						await update.message.delete()
+				elif text.lower() == "cancel":
+					data.clear()
+					await self.send_message("Sign in cancelled.", update, context, query)
+				else:
+					await self.send_message("""Please type "confirm" to sign in or "cancel" to abort.""", update, context, query)
+		elif data["sign_out_step"] == "confirm":
+			text = text.lower()
+			if text == "confirm":
+				try:
+					await self.sign_out(update, context, query)
+				finally:
+					data.clear()
+			elif text.lower() == "cancel":
+				data.clear()
+				await self.send_message("Sign out cancelled.", update, context, query)
+			else:
+				await self.send_message("""Please type "confirm" to sign out or "cancel" to abort.""", update, context, query)
+		elif "balance_step" in data:
 			if data["balance_step"] == "ask_token_id":
 				if self.model.validate_token_id(text):
 					data["balance"] = self.model.sanitize_token_id(text)
@@ -209,7 +297,7 @@ class Telegram(object):
 						data.clear()
 				else:
 					await self.send_message("""Please enter a valid token id ("btc").""", update, context, query)
-		if "open_orders_step" in data:
+		elif "open_orders_step" in data:
 			if data["open_orders_step"] == "ask_market_id":
 				if self.model.validate_market_id(text):
 					data["open_orders"] = self.model.sanitize_market_id(text)
@@ -219,7 +307,7 @@ class Telegram(object):
 						data.clear()
 				else:
 					await self.send_message("""Please enter a valid market id ("btcusdc").""", update, context, query)
-		if "place_market_buy_order_step" in data:
+		elif "place_market_buy_order_step" in data:
 			if data["place_market_buy_order_step"] == "ask_market_id":
 				if self.model.validate_market_id(text):
 					data["place_market_buy_order"]["market_id"] = self.model.sanitize_market_id(text)
@@ -247,7 +335,7 @@ class Telegram(object):
 					await self.send_message("Order canceled.", update, context, query)
 				else:
 					await self.send_message("""Please type "confirm" to place the order or "cancel" to abort.""", update, context, query)
-		if "place_market_sell_order_step" in data:
+		elif "place_market_sell_order_step" in data:
 			if data["place_market_sell_order_step"] == "ask_market_id":
 				if self.model.validate_market_id(text):
 					data["place_market_sell_order"]["market_id"] = self.model.sanitize_market_id(text)
@@ -275,7 +363,7 @@ class Telegram(object):
 					await self.send_message("Order canceled.", update, context, query)
 				else:
 					await self.send_message("""Please type "confirm" to place the order or "cancel" to abort.""", update, context, query)
-		if "place_limit_buy_order_step" in data:
+		elif "place_limit_buy_order_step" in data:
 			if data["place_limit_buy_order_step"] == "ask_market_id":
 				if self.model.validate_market_id(text):
 					data["place_limit_buy_order"]["market_id"] = self.model.sanitize_market_id(text)
@@ -310,7 +398,7 @@ class Telegram(object):
 					await self.send_message("Order canceled.", update, context, query)
 				else:
 					await self.send_message("""Please type "confirm" to place the order or "cancel" to abort.""", update, context, query)
-		if "place_limit_sell_order_step" in data:
+		elif "place_limit_sell_order_step" in data:
 			if data["place_limit_sell_order_step"] == "ask_market_id":
 				if self.model.validate_market_id(text):
 					data["place_limit_sell_order"]["market_id"] = self.model.sanitize_market_id(text)
@@ -345,7 +433,7 @@ class Telegram(object):
 					await self.send_message("Order canceled.", update, context, query)
 				else:
 					await self.send_message("""Please type "confirm" to place the order or "cancel" to abort.""", update, context, query)
-		if "place_order_step" in data:
+		elif "place_order_step" in data:
 			if data["place_order_step"] == "ask_order_type":
 				if self.model.validate_order_type(text):
 					data["place_order"]["order_type"] = self.model.sanitize_order_type(text)
@@ -424,6 +512,11 @@ class Telegram(object):
 		command = MagicMethod.find(command).value
 		command = self.camel_to_snake(command)
 
+		user_telegram_id = update.message.from_user.id
+
+		from app import get_user
+		user = get_user(user_telegram_id)
+
 		method = getattr(self.model, command, None)
 
 		if not method:
@@ -476,6 +569,8 @@ class Telegram(object):
 
 		command_buttons = [
 			[KeyboardButton(text=f"{str(EXCHANGE_ID).capitalize()} App", web_app=WebAppInfo(url=EXCHANGE_WEB_APP_URL))],
+			[InlineKeyboardButton("Sign In", callback_data="sign_in")],
+			[InlineKeyboardButton("Sign Out", callback_data="sign_out")],
 			[InlineKeyboardButton("Get a Token Balance", callback_data="balance")],
 			[InlineKeyboardButton("Get All Balances", callback_data="balances")],
 			[InlineKeyboardButton("Get All Open Orders from a Market", callback_data="open_orders")],
@@ -500,6 +595,9 @@ class Telegram(object):
 					*Available commands:*
 					
 					*/help*
+					
+					*/signIn*
+					*/signOut*
 					
 					*/balances*
 					
@@ -540,6 +638,11 @@ class Telegram(object):
 					*🤖 Welcome to {str(EXCHANGE_ID).upper()} Trading Bot! 📈*
 					
 					Here are the available commands:
+					
+					*ℹ️ Authentication commands:*
+						Show this information:
+						*- /signIn*
+						*- /signOut*
 					
 					*ℹ️ Util Commands:*
 						Show this information:
@@ -599,6 +702,84 @@ class Telegram(object):
 			query,
 			parse_mode="Markdown"
 		)
+
+	async def sign_in(self, update: Update, context: ContextTypes.DEFAULT_TYPE, query: CallbackQuery = None, data: Any = None):
+		if context.args:
+			exchange_id = (context.args[0:1] or [None])[0]
+			exchange_environment = (context.args[1:2] or [None])[0]
+			exchange_api_key = (context.args[2:3] or [None])[0]
+			exchange_api_secret = (context.args[3:4] or [None])[0]
+			exchange_options = (context.args[4:5] or [None])[0]
+		elif data:
+			exchange_id = data.get("exchange_id", None)
+			exchange_environment = data.get("exchange_environment", None)
+			exchange_api_key = data.get("exchange_api_key", None)
+			exchange_api_secret = data.get("exchange_api_secret", None)
+			exchange_options = data.get("exchange_options", None)
+		else:
+			exchange_id = None
+			exchange_environment = None
+			exchange_api_key = None
+			exchange_api_secret = None
+			exchange_options = None
+
+		if self.model.validate_exchange_id(exchange_id):
+			exchange_id = self.model.sanitize_exchange_id(exchange_id)
+		else:
+			await self.send_message(f"""Please enter a valid exchange ID. Ex.: {properties.get_or_default("exchange.id", "cube")}""", update, context, query)
+			return
+
+		if self.model.validate_exchange_environment(exchange_environment):
+			exchange_environment = self.model.sanitize_exchange_environment(exchange_environment)
+		else:
+			await self.send_message("""Please enter a valid exchange environment ("production", "staging", or "development").""", update, context, query)
+			return
+
+		if self.model.validate_exchange_api_key(exchange_api_key):
+			exchange_api_key = self.model.sanitize_exchange_api_key(exchange_api_key)
+		else:
+			await self.send_message("""Please enter a valid exchange API key. Ex.: a1aa22be-0aa0-b54a-80c1-fa9e111112c2""", update, context, query)
+			return
+
+		if self.model.validate_exchange_api_secret(exchange_api_secret):
+			exchange_api_secret = self.model.sanitize_exchange_api_secret(exchange_api_secret)
+		else:
+			await self.send_message("Please enter a valid exchange API secret. Ex.: abcdef010f6e98a4124e0a08bbf869d3cf1c999999999731fc7de20a9ea001ba", update, context, query)
+			return
+
+		if self.model.validate_exchange_options(exchange_options):
+			exchange_options = self.model.sanitize_exchange_options(exchange_options)
+		else:
+			await self.send_message("Please enter valid options for the exchange.", update, context, query)
+			return
+
+		credentials = Credentials()
+		credentials.userTelegramId = update.message.from_user.id
+		credentials.exchangeId = exchange_id
+		credentials.exchangeEnvironment = exchange_environment
+		credentials.exchangeApiKey = exchange_api_key
+		credentials.exchangeApiSecret = exchange_api_secret
+		credentials.exchangeOptions = exchange_options
+
+		message = await self.model.sign_in(credentials)
+
+		message = self.model.beautify(message)
+		message = f"Successfully signed in:\n\n{message}"
+
+		await self.send_message(message, update, context, query)
+
+	async def sign_out(self, update: Update, context: ContextTypes.DEFAULT_TYPE, query: CallbackQuery = None, data: Any = None):
+		if not await self.validate_request(update, context):
+			return
+
+		user_telegram_id = update.message.from_user.id
+
+		message = await self.model.sign_out(user_telegram_id)
+
+		message = self.model.beautify(message)
+		message = f"Successfully signed out:\n\n{message}"
+
+		await self.send_message(message, update, context, query)
 
 	async def get_balance(self, update: Update, context: ContextTypes.DEFAULT_TYPE, query: CallbackQuery = None, data: Any = None):
 		if not await self.validate_request(update, context):

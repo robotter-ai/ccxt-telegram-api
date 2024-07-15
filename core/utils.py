@@ -1,3 +1,5 @@
+import re
+
 import jsonpickle
 from deepmerge import always_merger
 from dotmap import DotMap
@@ -50,3 +52,16 @@ def dump(target: Any):
 
 def escape_html(text: str) -> str:
 	return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;").replace("'", "&apos;")
+
+
+def remove_non_allowed_characters(target, allowed_pattern):
+	"""
+	Remove all characters from the input_string that do not match the allowed_pattern regex.
+
+	:param target: The string to be processed.
+	:param allowed_pattern: A regex pattern defining the allowed characters.
+	:return: A new string with only allowed characters.
+	"""
+	regex = re.compile(allowed_pattern)
+
+	return ''.join(char for char in target if regex.match(char))

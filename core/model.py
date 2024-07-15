@@ -3,6 +3,7 @@ from collections import OrderedDict
 import json
 import jsonpickle
 import re
+import requests
 from dotmap import DotMap
 from singleton.singleton import ThreadSafeSingleton
 from typing import Any, Dict
@@ -13,8 +14,9 @@ import ccxt as sync_ccxt
 import ccxt.async_support as async_ccxt
 from ccxt.base.types import OrderType, OrderSide
 from core.decorators import handle_exceptions, async_handle_exceptions
-from core.types import MagicMethod
-
+from core.properties import properties
+from core.types import MagicMethod, Environment
+from core.utils import remove_non_allowed_characters
 
 ccxt = sync_ccxt
 
@@ -23,8 +25,37 @@ ccxt = sync_ccxt
 @handle_exceptions
 @ThreadSafeSingleton
 class Model(object):
+	from app import Credentials
+
 	def sanitize_exchange_id(self, target):
 		return str(target).lower()
+
+	def sanitize_exchange_environment(self, target):
+		# noinspection PyUnusedLocal,PyBroadException
+		try:
+			return Environment.get_by_id(str(target).lower()).value
+		except Exception as exception:
+			return None
+
+	def sanitize_exchange_api_key(self, target):
+		return remove_non_allowed_characters(target, r"[A-Za-z0-9-_]")
+
+	def sanitize_exchange_api_secret(self, target):
+		return remove_non_allowed_characters(target, r"[A-Za-z0-9-_]")
+
+	def sanitize_exchange_options(self, target):
+		if not target:
+			return None
+
+		if (isinstance(target, Dict) or isinstance(target, DotMap)) and target.get("subAccountId"):
+			return DotMap({
+				"subAccountId": self.sanitize_exchange_options_sub_account_id(target.get("subAccountId"))
+			}, _dynamic=False)
+
+		return None
+
+	def sanitize_exchange_options_sub_account_id(self, target):
+		return int(target)
 
 	def sanitize_token_id(self, target):
 		return str(target).upper()
@@ -51,6 +82,57 @@ class Model(object):
 		regex = re.compile(r'^[a-zA-Z]+$', re.IGNORECASE)
 
 		return regex.match(target)
+
+	def validate_exchange_environment(self, target):
+		if not target:
+			return False
+
+		environments = [environment.value for environment in Environment]
+
+		if target not in environments:
+			return False
+
+		return True
+
+	def validate_exchange_api_key(self, target):
+		if not target:
+			return False
+
+		regex = re.compile(r'^[a-zA-Z0-0-_]+$', re.IGNORECASE)
+
+		return regex.match(target)
+
+	def validate_exchange_api_secret(self, target):
+		if not target:
+			return False
+
+		regex = re.compile(r'^[a-zA-Z0-0-_]+$', re.IGNORECASE)
+
+		return regex.match(target)
+
+	def validate_exchange_options(self, target):
+		if not target:
+			return True
+
+		if not isinstance(target, DotMap) or not isinstance(target, Dict):
+			return False
+
+		auxiliar = target
+		if isinstance(target, DotMap):
+			auxiliar = target.toDict()
+
+		if len(auxiliar.keys()) != 1 or auxiliar.get("subAccountId", None) is None:
+			return False
+
+		return self.validate_exchange_options_sub_account_id(target["subAccountId"])
+
+	def validate_exchange_options_sub_account_id(self, target):
+		if not target:
+			return False
+
+		regex = re.compile(r'^[0-9]+$')
+
+		return regex.match(str(target))
 
 	def validate_token_id(self, target):
 		if not target:
@@ -120,6 +202,16 @@ class Model(object):
 		]
 
 		return output
+
+	async def sign_in(self, credentials: Credentials):
+		from app import update_user
+
+		return update_user(credentials)
+
+	async def sign_out(self, user_telegram_id):
+		from app import delete_user
+
+		return delete_user(user_telegram_id)
 
 	async def get_balance(self, exchange, token_id: str):
 		balances = await self.get_balances(exchange)

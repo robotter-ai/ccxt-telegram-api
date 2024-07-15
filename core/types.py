@@ -9,6 +9,14 @@ class Environment(Enum):
 	STAGING = "staging"
 	DEVELOPMENT = "development"
 
+	@staticmethod
+	def get_by_id(id_: str):
+		for environment in Environment:
+			if environment.value == id_.lower():
+				return environment
+
+		raise ValueError(f"""Environment with id "{id_}" not found.""")
+
 
 class HttpMethod(Enum):
 	GET = 'get'

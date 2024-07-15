@@ -57,6 +57,7 @@ unauthorized_exception = HTTPException(
 
 
 class Credentials(BaseModel):
+	userTelegramId: str
 	jwtToken: Optional[str] = None
 	exchangeId: str
 	exchangeEnvironment: Optional[str] = Environment.PRODUCTION.value
@@ -70,11 +71,15 @@ class Credentials(BaseModel):
 		return f"""{self.exchangeId}|{self.exchangeEnvironment}|{self.exchangeApiKey}"""
 
 
-def get_user(idOrJwtToken: str) -> Optional[DotMap[str, Any]]:
+def get_user(idOruserTelegramIdOrJwtToken: str) -> Optional[DotMap[str, Any]]:
 	user = properties.get_or_default(f"""users.{id}""", None)
 
 	if not user:
-		user_id = properties.get_or_default(f"""tokens.{idOrJwtToken}""")
+		user_id = properties.get_or_default(f"""telegram.ids.{idOruserTelegramIdOrJwtToken}""")
+		user = properties.get_or_default(f"""users.{user_id}""", None)
+
+	if not user:
+		user_id = properties.get_or_default(f"""tokens.{idOruserTelegramIdOrJwtToken}""")
 		user = properties.get_or_default(f"""users.{user_id}""", None)
 
 	if user:
@@ -111,6 +116,7 @@ def update_user(credentials: Credentials) -> DotMap[str, Any]:
 	properties.set(f"""users.{credentials.id}.exchange.{credentials.exchangeId}.{credentials.exchangeEnvironment}.{Protocol.REST.value}""", rest_exchange)
 	properties.set(f"""users.{credentials.id}.exchange.{credentials.exchangeId}.{credentials.exchangeEnvironment}.{Protocol.WebSocket.value}""", websocket_exchange)
 
+	properties.set(f"""telegram.ids.{credentials.userTelegramId}""", credentials.id)
 	properties.set(f"""tokens.{credentials.jwtToken}""", credentials.id)
 
 	return properties.get_or_default(f"""users.{credentials.id}""")
@@ -121,7 +127,8 @@ def delete_user(idOrJwtToken: str):
 
 	if user:
 		properties.set(f"""users.{user.id}""", None)
-		# properties.set(f"""tokens.{token}""", None)
+		# properties.set(f"""telegram.ids.{userTelegramId}""", None)
+		# properties.set(f"""tokens.{jwtToken}""", None)
 
 
 async def authenticate(credentials: Credentials):

@@ -4,6 +4,7 @@ Content-Type: application/json
 {
   "exchangeId": "{{exchangeId}}",
   "exchangeEnvironment": "{{exchangeEnvironment}}",
+  "userTelegramId": "{{userTelegramId}}",
   "exchangeApiKey": "{{exchangeApiKey}}",
   "exchangeApiSecret": "{{exchangeApiSecret}}",
   "exchangeOptions": {
