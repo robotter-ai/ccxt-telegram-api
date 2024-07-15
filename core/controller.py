@@ -26,7 +26,7 @@ async def ccxt(request: CCXTAPIRequest) -> CCXTAPIResponse:
 					if exchange_method_parameters is None:
 						response.result = attribute()
 					else:
-						response.result = attribute(**exchange_method_parameters)
+						response.result = attribute(**exchange_method_parameters.toDict())
 
 					return response
 				except Exception as exception:
