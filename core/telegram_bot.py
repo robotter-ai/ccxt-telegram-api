@@ -519,13 +519,7 @@ class Telegram(object):
 		command = MagicMethod.find(command).value
 		command = self.camel_to_snake(command)
 
-		user_telegram_id = update.message.from_user.id
-		exchange_id = properties.get_or_default("exchange.id")
-		exchange_environment = Environment.get_by_id(properties.get_or_default(f"exchanges.available.{exchange_id}.environment"))
-		exchange_protocol = Protocol.REST
-
-		from core.helpers import get_user_exchange
-		exchange = get_user_exchange(user_telegram_id, exchange_id, exchange_environment, exchange_protocol)
+		exchange = self.get_user_exchange(update)
 
 		method = getattr(self.model, command, None)
 
@@ -572,6 +566,18 @@ class Telegram(object):
 					return arg.lower() == "true"
 
 		return arg
+
+	# noinspection PyMethodMayBeStatic
+	def get_user_exchange(self, update: Update):
+		user_telegram_id = update.message.from_user.id
+		exchange_id = properties.get_or_default("exchange.id")
+		exchange_environment = Environment.get_by_id(properties.get_or_default(f"exchanges.available.{exchange_id}.environment"))
+		exchange_protocol = Protocol.REST
+
+		from core.helpers import get_user_exchange
+		exchange = get_user_exchange(user_telegram_id, exchange_id, exchange_environment, exchange_protocol)
+
+		return exchange
 
 	async def start(self, update: Update, context: ContextTypes.DEFAULT_TYPE, query: CallbackQuery = None, data: Any = None):
 		if not await self.validate_request(update, context):
@@ -714,9 +720,9 @@ class Telegram(object):
 		)
 
 	async def sign_in(self, update: Update, context: ContextTypes.DEFAULT_TYPE, query: CallbackQuery = None, data: Any = None):
-		await update.message.delete()
-
 		if context.args:
+			await update.message.delete()
+
 			exchange_id = (context.args[0:1] or [None])[0]
 			exchange_environment = (context.args[1:2] or [None])[0]
 			exchange_api_key = (context.args[2:3] or [None])[0]
@@ -816,8 +822,9 @@ class Telegram(object):
 			token_id = None
 
 		if self.model.validate_token_id(token_id):
+			exchange = self.get_user_exchange(update)
 			token_id = self.model.sanitize_token_id(token_id)
-			message = await self.model.get_balance(token_id)
+			message = await self.model.get_balance(exchange, token_id)
 
 			message = self.model.beautify(message)
 			await self.send_message(message, update, context, query)
@@ -829,7 +836,8 @@ class Telegram(object):
 		# if not await self.validate_request(update, context):
 		# 	return
 
-		message = await self.model.get_balances()
+		exchange = self.get_user_exchange(update)
+		message = await self.model.get_balances(exchange)
 
 		message = self.model.beautify(message)
 		await self.send_message(message, update, context, query)
@@ -846,8 +854,9 @@ class Telegram(object):
 			market_id = None
 
 		if self.model.validate_market_id(market_id):
+			exchange = self.get_user_exchange(update)
 			market_id = self.model.sanitize_market_id(market_id)
-			message = await self.model.get_open_orders(market_id)
+			message = await self.model.get_open_orders(exchange, market_id)
 
 			message = self.model.beautify(message)
 			await self.send_message(message, update, context, query)
@@ -880,7 +889,8 @@ class Telegram(object):
 			await self.send_message("Please enter a valid amount. Ex.: 123.4567", update, context, query)
 			return
 
-		message = await self.model.market_buy_order(market_id, amount)
+		exchange = self.get_user_exchange(update)
+		message = await self.model.market_buy_order(exchange, market_id, amount)
 
 		message = self.model.beautify(message)
 		message = f"Market buy order successfully placed:\n\n{message}"
@@ -910,7 +920,8 @@ class Telegram(object):
 			await self.send_message("Please enter a valid amount. Ex.: 123.4567", update, context, query)
 			return
 
-		message = await self.model.market_sell_order(market_id, amount)
+		exchange = self.get_user_exchange(update)
+		message = await self.model.market_sell_order(exchange, market_id, amount)
 
 		message = self.model.beautify(message)
 		message = f"Market sell order successfully placed:\n\n{message}"
@@ -949,7 +960,8 @@ class Telegram(object):
 			await self.send_message("Please enter a valid price. Ex.: 123.4567", update, context, query)
 			return
 
-		message = await self.model.limit_buy_order(market_id, amount, price)
+		exchange = self.get_user_exchange(update)
+		message = await self.model.limit_buy_order(exchange, market_id, amount, price)
 
 		message = self.model.beautify(message)
 		message = f"Limit buy order successfully placed:\n\n{message}"
@@ -988,7 +1000,8 @@ class Telegram(object):
 			await self.send_message("Please enter a valid price. Ex.: 123.4567", update, context, query)
 			return
 
-		message = await self.model.limit_sell_order(market_id, amount, price)
+		exchange = self.get_user_exchange(update)
+		message = await self.model.limit_sell_order(exchange, market_id, amount, price)
 
 		message = self.model.beautify(message)
 		message = f"Limit sell order successfully placed:\n\n{message}"
@@ -1046,7 +1059,8 @@ class Telegram(object):
 				await self.send_message("Please enter a valid price. Ex.: 123.4567", update, context, query)
 				return
 
-		message = await self.model.place_order(market_id, order_type, order_side, amount, price)
+		exchange = self.get_user_exchange(update)
+		message = await self.model.place_order(exchange, market_id, order_type, order_side, amount, price)
 
 		message = self.model.beautify(message)
 		message = f"Order successfully placed:\n\n{message}"
