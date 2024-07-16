@@ -28,5 +28,13 @@ constants = DotMap({
 	},
 	"errors": {
 		"unauthorized_user": "Unauthorized user."
+	},
+	"default": {
+		"exchange": {
+			"id": "cube",
+			"web_app": {
+				"url": "https://cube.exchange/"
+			}
+		}
 	}
 }, _dynamic=False)

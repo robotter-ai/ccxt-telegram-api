@@ -106,6 +106,9 @@ class Properties(object):
 		self.set("resources_path", os.path.join(self.get("root_path"), "resources"))
 		self.set("resources_configuration_path", os.path.join(self.get("resources_path"), "configuration"))
 		self.set("resources_logs_path", os.path.join(self.get("resources_path"), "logs"))
+		if not self.get("exchange.id"):
+			self.set("exchange.id", constants.default.exchange.id)
+		self.set("exchange", deep_merge(self.get("exchange"), self.get(f"""exchanges.available.{self.get("exchange.id")}""")))
 
 
 properties = Properties.instance()

@@ -27,7 +27,7 @@ EXCHANGE_ID: bool = os.getenv("EXCHANGE_ID", properties.get_or_default("exchange
 TELEGRAM_TOKEN: bool = os.getenv("TELEGRAM_TOKEN", properties.get_or_default("telegram.token", None))
 TELEGRAM_CHAT_ID: bool = os.getenv("TELEGRAM_CHANNEL_ID", properties.get_or_default("telegram.chat_id", None))
 TELEGRAM_LISTEN_COMMANDS: bool = os.getenv("TELEGRAM_LISTEN_COMMANDS", properties.get_or_default("telegram.listen_commands", "true")).lower() in ["true", "1"]
-EXCHANGE_WEB_APP_URL = os.getenv("EXCHANGE_WEB_APP_URL", properties.get_or_default("exchange.web_app.url", "https://cube.exchange/"))
+EXCHANGE_WEB_APP_URL = os.getenv("EXCHANGE_WEB_APP_URL", properties.get_or_default("exchange.web_app.url", constants.default.exchange.web_app.url))
 
 TELEGRAM_ADMIN_USERNAMES = []
 administrator = os.getenv("TELEGRAM_ADMIN_USERNAME", "").strip().replace("@", "")
@@ -55,7 +55,8 @@ class Telegram(object):
 		commands = [
 			BotCommand("start", "| Starts the bot"),
 			BotCommand("help", "| Provides help information"),
-			BotCommand("sign_in", "| Sign in the user to enable private operations"),
+			BotCommand("sign_in", "<exchangeApiKey> <exchangeApiSecret> <exchangeOptionsSubAccountId>| Sign in the user to enable private operations"),
+			# BotCommand("sign_in", "<exchangeId> <exchangeEnvironment> <exchangeApiKey> <exchangeApiSecret> <exchangeOptionsSubAccountId>| Sign in the user to enable private operations"),
 			BotCommand("sign_out", "| Sign out the user"),
 			BotCommand("balance", "<tokenId> | Get your balance"),
 			BotCommand("balances", "| Get all balances"),
@@ -161,8 +162,8 @@ class Telegram(object):
 		if data == "sign_in":
 			# context.user_data["sign_in"] = {}
 			context.user_data["sign_in"] = {
-				"exchange_id": properties.get_or_default("exchange.id", "cube"),
-				"exchange_environment": properties.get_or_default("exchange.environment", "production"),
+				"exchange_id": properties.get_or_default("exchange.id", constants.default.exchange.id),
+				"exchange_environment": properties.get_or_default("exchange.environment", Environment.PRODUCTION.value),
 			}
 			await self.send_message("Signing In", update, context, query)
 			await self.send_message("Enter your exchange API key. Ex.: a1aa22be-0aa0-b54a-80c1-fa9e111112c2", update, context, query)
@@ -571,7 +572,7 @@ class Telegram(object):
 	def get_user_exchange(self, update: Update):
 		user_telegram_id = update.message.from_user.id
 		exchange_id = properties.get_or_default("exchange.id")
-		exchange_environment = Environment.get_by_id(properties.get_or_default(f"exchanges.available.{exchange_id}.environment"))
+		exchange_environment = Environment.get_by_id(properties.get_or_default(f"exchange.environment"))
 		exchange_protocol = Protocol.REST
 
 		from core.helpers import get_user_exchange
@@ -731,6 +732,12 @@ class Telegram(object):
 			exchange_options = DotMap({
 				"sub_account_id": exchange_options_sub_account_id
 			}, _dynamic=False)
+
+			if not exchange_id:
+				exchange_id = properties.get("exchange.id", constants.default.exchange.id)
+
+			if not exchange_environment:
+				exchange_environment = properties.get(f"exchange.environment", Environment.PRODUCTION.value)
 		elif data:
 			exchange_id = data.get("exchange_id", None)
 			exchange_environment = data.get("exchange_environment", None)
@@ -747,7 +754,7 @@ class Telegram(object):
 		if self.model.validate_exchange_id(exchange_id):
 			exchange_id = self.model.sanitize_exchange_id(exchange_id)
 		else:
-			await self.send_message(f"""Please enter a valid exchange ID. Ex.: {properties.get_or_default("exchange.id", "cube")}""", update, context, query)
+			await self.send_message(f"""Please enter a valid exchange ID. Ex.: {properties.get_or_default("exchange.id", constants.default.exchange.id)}""", update, context, query)
 			return
 
 		if self.model.validate_exchange_environment(exchange_environment):
