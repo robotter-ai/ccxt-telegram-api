@@ -16,7 +16,6 @@ from core import controller
 from core.constants import constants
 from core.model import model
 from core.properties import properties
-from core.telegram_bot import telegram
 from core.types import SystemStatus, APIResponse, CCXTAPIRequest, Credentials
 from core.utils import deep_merge
 from tests.integration_tests import IntegrationTests
@@ -32,6 +31,7 @@ properties.load(app)
 from core.logger import logger
 from core.helpers import authenticate, unauthorized_exception, create_jwt_token, update_user, validate, \
 	delete_user, get_user
+from core.telegram_bot import telegram
 
 
 @app.post("/auth/signIn")
