@@ -1,7 +1,8 @@
 from dataclasses import dataclass
 from dotmap import DotMap
 from enum import Enum
-from typing import Any, Dict
+from pydantic import BaseModel
+from typing import Any, Dict, Optional
 
 
 class Environment(Enum):
@@ -127,3 +128,18 @@ class APIResponseStatus(Enum):
 	EXCHANGE_NOT_AVAILABLE_ERROR = "exchange_not_available_error"
 	METHOD_EXECUTION_ERROR = "method_execution_error"
 	UNKNOWN_ERROR = "unknown_error"
+
+
+class Credentials(BaseModel):
+	userTelegramId: str
+	jwtToken: Optional[str] = None
+	exchangeId: str
+	exchangeEnvironment: Optional[str] = Environment.PRODUCTION.value
+	exchangeProtocol: Optional[str] = Protocol.REST.value
+	exchangeApiKey: str
+	exchangeApiSecret: str
+	exchangeOptions: Optional[dict[str, Any]] = None
+
+	@property
+	def id(self):
+		return f"""{self.exchangeId}|{self.exchangeEnvironment}|{self.exchangeApiKey}"""

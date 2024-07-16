@@ -1,6 +1,5 @@
-import re
-
 import jsonpickle
+import re
 from deepmerge import always_merger
 from dotmap import DotMap
 from functools import reduce

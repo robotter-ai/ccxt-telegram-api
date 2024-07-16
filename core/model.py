@@ -3,7 +3,6 @@ from collections import OrderedDict
 import json
 import jsonpickle
 import re
-import requests
 from dotmap import DotMap
 from singleton.singleton import ThreadSafeSingleton
 from typing import Any, Dict
@@ -14,8 +13,7 @@ import ccxt as sync_ccxt
 import ccxt.async_support as async_ccxt
 from ccxt.base.types import OrderType, OrderSide
 from core.decorators import handle_exceptions, async_handle_exceptions
-from core.properties import properties
-from core.types import MagicMethod, Environment
+from core.types import MagicMethod, Environment, Credentials
 from core.utils import remove_non_allowed_characters
 
 ccxt = sync_ccxt
@@ -25,8 +23,6 @@ ccxt = sync_ccxt
 @handle_exceptions
 @ThreadSafeSingleton
 class Model(object):
-	from app import Credentials
-
 	def sanitize_exchange_id(self, target):
 		return str(target).lower()
 

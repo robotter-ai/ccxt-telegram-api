@@ -1,9 +1,3 @@
-from dotmap import DotMap
-
-# noinspection PyUnresolvedReferences
-import ccxt as sync_ccxt
-# noinspection PyUnresolvedReferences
-import ccxt.async_support as async_ccxt
 import json
 import os
 import requests
@@ -15,12 +9,15 @@ from telegram.ext import Application, CommandHandler, ContextTypes, CallbackQuer
 from typing import Any
 from typing import List
 
-from app import Credentials
+# noinspection PyUnresolvedReferences
+import ccxt as sync_ccxt
+# noinspection PyUnresolvedReferences
+import ccxt.async_support as async_ccxt
 from core.constants import constants
 from core.decorators import handle_exceptions
 from core.model import model
 from core.properties import properties
-from core.types import MagicMethod
+from core.types import MagicMethod, Credentials
 
 ccxt = sync_ccxt
 
