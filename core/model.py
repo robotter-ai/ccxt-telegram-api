@@ -43,9 +43,9 @@ class Model(object):
 		if not target:
 			return None
 
-		if (isinstance(target, Dict) or isinstance(target, DotMap)) and target.get("subAccountId"):
+		if (isinstance(target, Dict) or isinstance(target, DotMap)) and target.get("sub_account_id"):
 			return DotMap({
-				"subAccountId": self.sanitize_exchange_options_sub_account_id(target.get("subAccountId"))
+				"subAccountId": self.sanitize_exchange_options_sub_account_id(target.get("sub_account_id"))
 			}, _dynamic=False)
 
 		return None
@@ -94,7 +94,7 @@ class Model(object):
 		if not target:
 			return False
 
-		regex = re.compile(r'^[a-zA-Z0-0-_]+$', re.IGNORECASE)
+		regex = re.compile(r'^[a-zA-Z0-9-_]+$', re.IGNORECASE)
 
 		return regex.match(target)
 
@@ -102,7 +102,7 @@ class Model(object):
 		if not target:
 			return False
 
-		regex = re.compile(r'^[a-zA-Z0-0-_]+$', re.IGNORECASE)
+		regex = re.compile(r'^[a-zA-Z0-9-_]+$', re.IGNORECASE)
 
 		return regex.match(target)
 
@@ -110,21 +110,21 @@ class Model(object):
 		if not target:
 			return True
 
-		if not isinstance(target, DotMap) or not isinstance(target, Dict):
+		if not isinstance(target, DotMap) and not isinstance(target, Dict):
 			return False
 
 		auxiliar = target
 		if isinstance(target, DotMap):
 			auxiliar = target.toDict()
 
-		if len(auxiliar.keys()) != 1 or auxiliar.get("subAccountId", None) is None:
+		if len(auxiliar.keys()) != 1 or auxiliar.get("sub_account_id", None) is None:
 			return False
 
-		return self.validate_exchange_options_sub_account_id(target["subAccountId"])
+		return self.validate_exchange_options_sub_account_id(target["sub_account_id"])
 
 	def validate_exchange_options_sub_account_id(self, target):
-		if not target:
-			return False
+		# if not target:
+		# 	return False
 
 		regex = re.compile(r'^[0-9]+$')
 
@@ -444,23 +444,26 @@ class Model(object):
 
 		return output
 
-	def __getattr__(self, exchange, method_name):
-		attribute = getattr(exchange, method_name, None)
+	def __getattr__(self, method_name):
+		def call(exchange: Any):
+			attribute = getattr(exchange, method_name, None)
 
-		if callable(attribute):
-			@async_handle_exceptions
-			async def method(*args, **kwargs):
-				result = attribute(*args, **kwargs)
-				output = self.handle_magic_command_output(
-					method_name,
-					result
-				)
+			if callable(attribute):
+				@async_handle_exceptions
+				async def method(*args, **kwargs):
+					result = attribute(*args, **kwargs)
+					output = self.handle_magic_command_output(
+						method_name,
+						result
+					)
 
-				return output
+					return output
 
-			return method
+				return method
 
-		return attribute
+			return attribute
+
+		return call
 
 	def beautify(self, target: Any, indent=0) -> str:
 		if target is None:

@@ -18,7 +18,7 @@ from ccxt import Exchange as RESTExchange
 from ccxt.async_support import Exchange as WebSocketExchange
 from core.constants import constants
 from core.properties import properties
-from core.types import Protocol, Credentials
+from core.types import Protocol, Credentials, Environment
 
 ccxt = sync_ccxt
 
@@ -32,15 +32,24 @@ unauthorized_exception = HTTPException(
 )
 
 
-def get_user(idOruserTelegramIdOrJwtToken: str) -> Optional[DotMap[str, Any]]:
+def get_user_exchange(id_or_user_telegram_id_or_jwt_token: str | int, exchange_id: str, exchange_environment: Environment, exchange_protocol: Protocol) -> Optional[RESTExchange | WebSocketExchange]:
+	user = get_user(id_or_user_telegram_id_or_jwt_token)
+
+	if user:
+		return properties.get_or_default(f"""users.{user.id}.exchange.{exchange_id}.{exchange_environment.value}.{exchange_protocol.value}""")
+
+	return None
+
+
+def get_user(id_or_user_telegram_id_or_jwt_token: str | int) -> Optional[DotMap[str, Any]]:
 	user = properties.get_or_default(f"""users.{id}""", None)
 
 	if not user:
-		user_id = properties.get_or_default(f"""telegram.ids.{idOruserTelegramIdOrJwtToken}""")
+		user_id = properties.get_or_default(f"""telegram.ids.{id_or_user_telegram_id_or_jwt_token}""")
 		user = properties.get_or_default(f"""users.{user_id}""", None)
 
 	if not user:
-		user_id = properties.get_or_default(f"""tokens.{idOruserTelegramIdOrJwtToken}""")
+		user_id = properties.get_or_default(f"""tokens.{id_or_user_telegram_id_or_jwt_token}""")
 		user = properties.get_or_default(f"""users.{user_id}""", None)
 
 	if user:

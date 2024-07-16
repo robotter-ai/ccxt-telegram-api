@@ -2,6 +2,7 @@ import json
 import os
 import requests
 import textwrap
+from dotmap import DotMap
 from singleton.singleton import ThreadSafeSingleton
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery, BotCommand, WebAppInfo, \
 	KeyboardButton, ReplyKeyboardMarkup
@@ -17,7 +18,7 @@ from core.constants import constants
 from core.decorators import handle_exceptions
 from core.model import model
 from core.properties import properties
-from core.types import MagicMethod, Credentials
+from core.types import MagicMethod, Credentials, Protocol, Environment
 
 ccxt = sync_ccxt
 
@@ -54,7 +55,8 @@ class Telegram(object):
 		commands = [
 			BotCommand("start", "| Starts the bot"),
 			BotCommand("help", "| Provides help information"),
-			BotCommand("sign_in", "| Authenticate the user to enable private operations"),
+			BotCommand("sign_in", "| Sign in the user to enable private operations"),
+			BotCommand("sign_out", "| Sign out the user"),
 			BotCommand("balance", "<tokenId> | Get your balance"),
 			BotCommand("balances", "| Get all balances"),
 			BotCommand("cancel_all_orders", "<marketId> | Cancel all open orders from a market"),
@@ -162,13 +164,14 @@ class Telegram(object):
 				"exchange_id": properties.get_or_default("exchange.id", "cube"),
 				"exchange_environment": properties.get_or_default("exchange.environment", "production"),
 			}
+			await self.send_message("Signing In", update, context, query)
 			await self.send_message("Enter your exchange API key. Ex.: a1aa22be-0aa0-b54a-80c1-fa9e111112c2", update, context, query)
 			context.user_data["sign_in_step"] = "ask_exchange_api_key"
-		if data == "sign_out":
+		elif data == "sign_out":
 			context.user_data["sign_out"] = {}
 			await self.send_message("""Are you sure that you want to sign out? Type "confirm" to sign out or "cancel" to abort.""", update, context, query)
 			context.user_data["sign_out_step"] = "confirm"
-		if data == "balance":
+		elif data == "balance":
 			context.user_data["balance"] = ""
 			await self.send_message("Enter the token id. Ex: btc", update, context, query)
 			context.user_data["balance_step"] = "ask_token_id"
@@ -218,55 +221,62 @@ class Telegram(object):
 
 		if "sign_in_step" in data:
 			if data["sign_in_step"] == "ask_exchange_id":
+				await update.message.delete()
 				if self.model.validate_exchange_id(text):
 					data["sign_in"]["exchange_id"] = self.model.sanitize_exchange_id(text)
 					data["sign_in_step"] = "ask_exchange_environment"
-					await update.message.delete()
 					await self.send_message("""Enter the exchange environment ("production", "staging", "development")""", update, context, query)
 				else:
 					await self.send_message(f"""Please enter a valid exchange id. Ex.: {properties.get_or_default("exchange.id")}""", update, context, query)
 			elif data["sign_in_step"] == "ask_exchange_environment":
+				await update.message.delete()
 				if self.model.validate_exchange_environment(text):
 					data["sign_in"]["exchange_environment"] = self.model.sanitize_exchange_environment(text)
 					data["sign_in_step"] = "ask_exchange_api_key"
-					await update.message.delete()
 					await self.send_message("""Enter the exchange API key. Ex.: a1aa22be-0aa0-b54a-80c1-fa9e111112c2""", update, context, query)
 				else:
 					await self.send_message("""Please enter a valid exchange environment("production", "staging", "development").""", update, context, query)
 			elif data["sign_in_step"] == "ask_exchange_api_key":
+				await update.message.delete()
 				if self.model.validate_exchange_api_key(text):
 					data["sign_in"]["exchange_api_key"] = self.model.sanitize_exchange_api_key(text)
 					data["sign_in_step"] = "ask_exchange_api_secret"
-					await update.message.delete()
 					await self.send_message("""Enter the exchange API secret. Ex.: abcdef010f6e98a4124e0a08bbf869d3cf1c999999999731fc7de20a9ea001ba""", update, context, query)
 				else:
 					await self.send_message("""Please enter a valid exchange API key. Ex.: a1aa22be-0aa0-b54a-80c1-fa9e111112c2""", update, context, query)
 			elif data["sign_in_step"] == "ask_exchange_api_secret":
+				await update.message.delete()
 				if self.model.validate_exchange_api_secret(text):
 					data["sign_in"]["exchange_api_secret"] = self.model.sanitize_exchange_api_secret(text)
 					data["sign_in_step"] = "ask_exchange_options_sub_account_id"
-					await update.message.delete()
-					await self.send_message("""Enter your sub account ID (optional). Ex.: 123""", update, context, query)
+					await self.send_message("""Enter your sub account ID. Ex.: 123""", update, context, query)
 				else:
 					await self.send_message("""Please enter a valid exchange API secret. Ex.: abcdef010f6e98a4124e0a08bbf869d3cf1c999999999731fc7de20a9ea001ba""", update, context, query)
 			elif data["sign_in_step"] == "ask_exchange_options_sub_account_id":
+				await update.message.delete()
 				if self.model.validate_exchange_options_sub_account_id(text):
 					data["sign_in"]["exchange_options"] = {}
 					data["sign_in"]["exchange_options"]["sub_account_id"] = self.model.sanitize_exchange_options_sub_account_id(text)
 					data["sign_in_step"] = "confirm"
-					await update.message.delete()
-					formatted = self.model.beautify(data["sign_in"])
-					await self.send_message(f"""Review your credentials and type "confirm" to sign in or "cancel" to abort.\n\n{formatted}""", update, context, query)
+					formatted = self.model.beautify({
+						"exchange": data["sign_in"]["exchange_id"],
+						"environment": data["sign_in"]["exchange_environment"],
+						"api_key": data["sign_in"]["exchange_api_key"],
+						"api_secret": data["sign_in"]["exchange_api_secret"],
+						"options": data["sign_in"]["exchange_options"],
+					})
+					# await self.send_message(f"""Review your credentials and type "confirm" to sign in or "cancel" to abort.\n\n{formatted}""", update, context, query)
+					await self.send_message(f"""Type "confirm" to sign in or "cancel" to abort.""", update, context, query)
 				else:
-					await self.send_message("""Please enter a valid sub account id (optional). Ex.: 123""", update, context, query)
+					await self.send_message("""Please enter a valid sub account id. Ex.: 123""", update, context, query)
 			elif data["sign_in_step"] == "confirm":
+				await update.message.delete()
 				text = text.lower()
 				if text == "confirm":
 					try:
 						await self.sign_in(update, context, query, data["sign_in"])
 					finally:
 						data.clear()
-						await update.message.delete()
 				elif text.lower() == "cancel":
 					data.clear()
 					await self.send_message("Sign in cancelled.", update, context, query)
@@ -510,9 +520,12 @@ class Telegram(object):
 		command = self.camel_to_snake(command)
 
 		user_telegram_id = update.message.from_user.id
+		exchange_id = properties.get_or_default("exchange.id")
+		exchange_environment = Environment.get_by_id(properties.get_or_default(f"exchanges.available.{exchange_id}.environment"))
+		exchange_protocol = Protocol.REST
 
-		from app import get_user
-		user = get_user(user_telegram_id)
+		from core.helpers import get_user_exchange
+		exchange = get_user_exchange(user_telegram_id, exchange_id, exchange_environment, exchange_protocol)
 
 		method = getattr(self.model, command, None)
 
@@ -520,7 +533,7 @@ class Telegram(object):
 			await self.send_message(f"""Unrecognized command "{command}" for exchange {EXCHANGE_ID}.""", update, context, query)
 			return
 
-		message = await method(*positional_args, **named_args)
+		message = await method(exchange)(*positional_args, **named_args)
 
 		message = self.model.beautify(message)
 
@@ -701,12 +714,17 @@ class Telegram(object):
 		)
 
 	async def sign_in(self, update: Update, context: ContextTypes.DEFAULT_TYPE, query: CallbackQuery = None, data: Any = None):
+		await update.message.delete()
+
 		if context.args:
 			exchange_id = (context.args[0:1] or [None])[0]
 			exchange_environment = (context.args[1:2] or [None])[0]
 			exchange_api_key = (context.args[2:3] or [None])[0]
 			exchange_api_secret = (context.args[3:4] or [None])[0]
-			exchange_options = (context.args[4:5] or [None])[0]
+			exchange_options_sub_account_id = (context.args[4:5] or [None])[0]
+			exchange_options = DotMap({
+				"sub_account_id": exchange_options_sub_account_id
+			}, _dynamic=False)
 		elif data:
 			exchange_id = data.get("exchange_id", None)
 			exchange_environment = data.get("exchange_environment", None)
@@ -745,23 +763,29 @@ class Telegram(object):
 			return
 
 		if self.model.validate_exchange_options(exchange_options):
-			exchange_options = self.model.sanitize_exchange_options(exchange_options)
+			exchange_options: DotMap = self.model.sanitize_exchange_options(exchange_options)
 		else:
 			await self.send_message("Please enter valid options for the exchange.", update, context, query)
 			return
 
-		credentials = Credentials()
-		credentials.userTelegramId = update.message.from_user.id
-		credentials.exchangeId = exchange_id
-		credentials.exchangeEnvironment = exchange_environment
-		credentials.exchangeApiKey = exchange_api_key
-		credentials.exchangeApiSecret = exchange_api_secret
-		credentials.exchangeOptions = exchange_options
+		parameters = {
+			"userTelegramId": update.message.from_user.id,
+			"jwtToken": None,
+			"exchangeId": exchange_id,
+			"exchangeEnvironment": exchange_environment,
+			"exchangeProtocol": Protocol.REST.value,
+			"exchangeApiKey": exchange_api_key,
+			"exchangeApiSecret": exchange_api_secret,
+			"exchangeOptions": exchange_options.toDict()
+		}
+		credentials = Credentials(**parameters)
 
-		message = await self.model.sign_in(credentials)
+		# message = await self.model.sign_in(credentials)
+		# message = self.model.beautify(message)
+		# message = f"Successfully signed in:\n\n{message}"
 
-		message = self.model.beautify(message)
-		message = f"Successfully signed in:\n\n{message}"
+		await self.model.sign_in(credentials)
+		message = f"Successfully signed in."
 
 		await self.send_message(message, update, context, query)
 
@@ -771,10 +795,12 @@ class Telegram(object):
 
 		user_telegram_id = update.message.from_user.id
 
-		message = await self.model.sign_out(user_telegram_id)
+		# message = await self.model.sign_out(user_telegram_id)
+		# message = self.model.beautify(message)
+		# message = f"Successfully signed out:\n\n{message}"
 
-		message = self.model.beautify(message)
-		message = f"Successfully signed out:\n\n{message}"
+		message = f"Successfully signed out."
+		await self.model.sign_out(user_telegram_id)
 
 		await self.send_message(message, update, context, query)
 

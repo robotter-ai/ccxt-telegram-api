@@ -131,7 +131,7 @@ class APIResponseStatus(Enum):
 
 
 class Credentials(BaseModel):
-	userTelegramId: str
+	userTelegramId: str | int
 	jwtToken: Optional[str] = None
 	exchangeId: str
 	exchangeEnvironment: Optional[str] = Environment.PRODUCTION.value
