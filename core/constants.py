@@ -27,7 +27,8 @@ constants = DotMap({
 		}
 	},
 	"errors": {
-		"unauthorized_user": "Unauthorized user."
+		"unauthorized_user": "Unauthorized user.",
+	 	"sign_in_required": "You need to sign in to perform this operation."
 	},
 	"default": {
 		"exchange": {

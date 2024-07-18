@@ -200,12 +200,12 @@ class Model(object):
 		return output
 
 	async def sign_in(self, credentials: Credentials):
-		from app import update_user
+		from core.helpers import update_user
 
 		return update_user(credentials)
 
 	async def sign_out(self, user_telegram_id):
-		from app import delete_user
+		from core.helpers import delete_user
 
 		return delete_user(user_telegram_id)
 

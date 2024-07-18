@@ -16,6 +16,7 @@ import ccxt as sync_ccxt
 import ccxt.async_support as async_ccxt
 from core.constants import constants
 from core.decorators import handle_exceptions
+from core.helpers import get_user, get_user_exchange
 from core.model import model
 from core.properties import properties
 from core.types import MagicMethod, Credentials, Protocol, Environment
@@ -23,11 +24,9 @@ from core.types import MagicMethod, Credentials, Protocol, Environment
 ccxt = sync_ccxt
 
 
-EXCHANGE_ID: bool = os.getenv("EXCHANGE_ID", properties.get_or_default("exchange.id", None))
 TELEGRAM_TOKEN: bool = os.getenv("TELEGRAM_TOKEN", properties.get_or_default("telegram.token", None))
 TELEGRAM_CHAT_ID: bool = os.getenv("TELEGRAM_CHANNEL_ID", properties.get_or_default("telegram.chat_id", None))
 TELEGRAM_LISTEN_COMMANDS: bool = os.getenv("TELEGRAM_LISTEN_COMMANDS", properties.get_or_default("telegram.listen_commands", "true")).lower() in ["true", "1"]
-EXCHANGE_WEB_APP_URL = os.getenv("EXCHANGE_WEB_APP_URL", properties.get_or_default("exchange.web_app.url", constants.default.exchange.web_app.url))
 
 TELEGRAM_ADMIN_USERNAMES = []
 administrator = os.getenv("TELEGRAM_ADMIN_USERNAME", "").strip().replace("@", "")
@@ -142,11 +141,23 @@ class Telegram(object):
 
 		return False
 
-	async def validate_request(self, update: Update, _context: ContextTypes.DEFAULT_TYPE) -> bool:
+	# noinspection PyMethodMayBeStatic
+	def is_signed_in(self, user_telegram_id):
+		if get_user(user_telegram_id):
+			return True
+		
+		return False
+
+	async def validate_request(self, update: Update, context: ContextTypes.DEFAULT_TYPE, is_private_operation: bool = False) -> bool:
 		# noinspection PyBroadException
 		try:
+			if is_private_operation and not self.is_signed_in(update.effective_user.id):
+				await self.send_message(constants.errors.sign_in_required, update, update.callback_query)
+
+				return False
+
 			if not self.is_admin(update.message.from_user.username):
-				await self.send_message(constants.errors.unauthorized_user)
+				await self.send_message(constants.errors.unauthorized_user, update, update.callback_query)
 
 				return False
 
@@ -158,8 +169,14 @@ class Telegram(object):
 		query = update.callback_query
 		await query.answer()
 		data = query.data
+		user_telegram_id = update.effective_user.id
 
 		if data == "sign_in":
+			if self.is_signed_in(user_telegram_id):
+				await self.send_message("""You have already signed in.""", update, context, query)
+
+				return
+
 			# context.user_data["sign_in"] = {}
 			context.user_data["sign_in"] = {
 				"exchange_id": properties.get_or_default("exchange.id", constants.default.exchange.id),
@@ -169,6 +186,11 @@ class Telegram(object):
 			await self.send_message("Enter your exchange API key. Ex.: a1aa22be-0aa0-b54a-80c1-fa9e111112c2", update, context, query)
 			context.user_data["sign_in_step"] = "ask_exchange_api_key"
 		elif data == "sign_out":
+			if not self.is_signed_in(user_telegram_id):
+				await self.send_message("""You are not signed in.""", update, context, query)
+
+				return
+
 			context.user_data["sign_out"] = {}
 			await self.send_message("""Are you sure that you want to sign out? Type "confirm" to sign out or "cancel" to abort.""", update, context, query)
 			context.user_data["sign_out_step"] = "confirm"
@@ -499,9 +521,6 @@ class Telegram(object):
 					await self.send_message("""Please type "confirm" to place the order or "cancel" to abort.""", update, context, query)
 
 	async def handle_magic_command_input(self, update: Update, context: ContextTypes.DEFAULT_TYPE, query: CallbackQuery = None, data: Any = None):
-		if not await self.validate_request(update, context):
-			return
-
 		text = update.message.text
 		command, *args = text.lstrip("/").split(maxsplit=1)
 		args = args[0] if args else ""
@@ -517,7 +536,12 @@ class Telegram(object):
 			else:
 				positional_args.append(self.parse_argument(token))
 
-		command = MagicMethod.find(command).value
+		magic_method = MagicMethod.find(command)
+
+		if not await self.validate_request(update, context, magic_method.is_private):
+			return
+
+		command = magic_method.id
 		command = self.camel_to_snake(command)
 
 		exchange = self.get_user_exchange(update)
@@ -525,7 +549,7 @@ class Telegram(object):
 		method = getattr(self.model, command, None)
 
 		if not method:
-			await self.send_message(f"""Unrecognized command "{command}" for exchange {EXCHANGE_ID}.""", update, context, query)
+			await self.send_message(f"""Unrecognized command "{command}" for exchange {properties.get_or_default("exchange.id", constants.default.exchange.id).capitalize()}.""", update, context, query)
 			return
 
 		message = await method(exchange)(*positional_args, **named_args)
@@ -575,7 +599,6 @@ class Telegram(object):
 		exchange_environment = Environment.get_by_id(properties.get_or_default(f"exchange.environment"))
 		exchange_protocol = Protocol.REST
 
-		from core.helpers import get_user_exchange
 		exchange = get_user_exchange(user_telegram_id, exchange_id, exchange_environment, exchange_protocol)
 
 		return exchange
@@ -585,7 +608,10 @@ class Telegram(object):
 			return
 
 		command_buttons = [
-			[KeyboardButton(text=f"{str(EXCHANGE_ID).capitalize()} App", web_app=WebAppInfo(url=EXCHANGE_WEB_APP_URL))],
+			[KeyboardButton(
+				text=f"""{properties.get_or_default("exchange.id", constants.default.exchange.id).capitalize()} App""",
+				web_app=WebAppInfo(url=properties.get_or_default("exchange.web_app.url", constants.default.exchange.web_app.url))
+			)],
 			[InlineKeyboardButton("Sign In", callback_data="sign_in")],
 			[InlineKeyboardButton("Sign Out", callback_data="sign_out")],
 			[InlineKeyboardButton("Get a Token Balance", callback_data="balance")],
@@ -600,14 +626,17 @@ class Telegram(object):
 		inline_keyboard_markup = InlineKeyboardMarkup(command_buttons)
 
 		web_app_keyboard = [
-			[KeyboardButton(text=f"{str(EXCHANGE_ID).capitalize()} App", web_app=WebAppInfo(url=EXCHANGE_WEB_APP_URL))]
+			[KeyboardButton(
+				text=f"""{properties.get_or_default("exchange.id", constants.default.exchange.id).capitalize()} App""",
+				web_app=WebAppInfo(url=properties.get_or_default("exchange.web_app.url", constants.default.exchange.web_app.url))
+			)]
 		]
 		reply_keyboard_markup = ReplyKeyboardMarkup(web_app_keyboard, resize_keyboard=True)
 
 		await self.send_message(
 			textwrap.dedent(
 				f"""
-					*🤖 Welcome to {str(EXCHANGE_ID).upper()} Trading Bot! 📈*
+					*🤖 Welcome to {properties.get_or_default("exchange.id", constants.default.exchange.id).capitalize()} Trading Bot! 📈*
 					
 					*Available commands:*
 					
@@ -652,7 +681,7 @@ class Telegram(object):
 		await self.send_message(
 			textwrap.dedent(
 				f"""
-					*🤖 Welcome to {str(EXCHANGE_ID).upper()} Trading Bot! 📈*
+					*🤖 Welcome to {str(properties.get_or_default("exchange.id", constants.default.exchange.id).capitalize()).upper()} Trading Bot! 📈*
 					
 					Here are the available commands:
 					
@@ -723,6 +752,11 @@ class Telegram(object):
 	async def sign_in(self, update: Update, context: ContextTypes.DEFAULT_TYPE, query: CallbackQuery = None, data: Any = None):
 		if context.args:
 			await update.message.delete()
+
+			user_telegram_id = update.effective_user.id
+			if self.is_signed_in(user_telegram_id):
+				await self.send_message("""You have already signed in.""", update, context, query)
+				return
 
 			exchange_id = (context.args[0:1] or [None])[0]
 			exchange_environment = (context.args[1:2] or [None])[0]
@@ -806,19 +840,23 @@ class Telegram(object):
 		if not await self.validate_request(update, context):
 			return
 
-		user_telegram_id = update.message.from_user.id
+		user_telegram_id = update.effective_user.id
+		if not self.is_signed_in(user_telegram_id):
+			await self.send_message("""You are not signed in.""", update, context, query)
+
+			return
 
 		# message = await self.model.sign_out(user_telegram_id)
 		# message = self.model.beautify(message)
 		# message = f"Successfully signed out:\n\n{message}"
 
-		message = f"Successfully signed out."
 		await self.model.sign_out(user_telegram_id)
+		message = f"Successfully signed out."
 
 		await self.send_message(message, update, context, query)
 
 	async def get_balance(self, update: Update, context: ContextTypes.DEFAULT_TYPE, query: CallbackQuery = None, data: Any = None):
-		if not await self.validate_request(update, context):
+		if not await self.validate_request(update, context, True):
 			return
 
 		if context.args:
@@ -839,9 +877,8 @@ class Telegram(object):
 			await self.send_message("""Please enter a valid token id ("btc").""", update, context, query)
 
 	async def get_balances(self, update: Update, context: ContextTypes.DEFAULT_TYPE, query: CallbackQuery = None, data: Any = None):
-		## Special case, this validation does not apply here because the action is called directly.
-		# if not await self.validate_request(update, context):
-		# 	return
+		if not await self.validate_request(update, context, True):
+			return
 
 		exchange = self.get_user_exchange(update)
 		message = await self.model.get_balances(exchange)

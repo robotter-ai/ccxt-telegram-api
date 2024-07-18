@@ -47,35 +47,39 @@ class SystemStatus(Enum):
 
 
 class MagicMethod(Enum):
-	CANCEL_ALL_ORDERS = "cancelAllOrders"
-	CANCEL_ORDER = "cancelOrder"
-	CREATE_ORDER = "createOrder"
-	DESCRIBE = "describe"
-	DEPOSIT = "deposit"
-	FETCH_BALANCE = "fetchBalance"
-	FETCH_CLOSED_ORDERS = "fetchClosedOrders"
-	FETCH_CURRENCIES = "fetchCurrencies"
-	FETCH_DEPOSIT_ADDRESSES = "fetchDepositAddresses"
-	FETCH_MARKETS = "fetchMarkets"
-	FETCH_MY_TRADES = "fetchMyTrades"
-	FETCH_OHLCV = "fetchOHLCV"
-	FETCH_OPEN_ORDER = "fetchOpenOrder"
-	FETCH_OPEN_ORDERS = "fetchOpenOrders"
-	FETCH_ORDER = "fetchOrder"
-	FETCH_ORDER_BOOK = "fetchOrderBook"
-	FETCH_ORDERS = "fetchOrders"
-	FETCH_ORDERS_ALL_MARKETS = "fetchOrdersAllMarkets"
-	FETCH_STATUS = "fetchStatus"
-	FETCH_TICKER = "fetchTicker"
-	FETCH_TICKERS = "fetchTickers"
-	FETCH_TRADES = "fetchTrades"
-	FETCH_TRADING_FEE = "fetchTradingFee"
-	SET_SANDBOX_MODE = "setSandboxMode"
-	WITHDRAW = "withdraw"
+	CANCEL_ALL_ORDERS = ("cancelAllOrders", True)
+	CANCEL_ORDER = ("cancelOrder", True)
+	CREATE_ORDER = ("createOrder", True)
+	DESCRIBE = ("describe", False)
+	DEPOSIT = ("deposit", True)
+	FETCH_BALANCE = ("fetchBalance", True)
+	FETCH_CLOSED_ORDERS = ("fetchClosedOrders", True)
+	FETCH_CURRENCIES = ("fetchCurrencies", True)
+	FETCH_DEPOSIT_ADDRESSES = ("fetchDepositAddresses", True)
+	FETCH_MARKETS = ("fetchMarkets", True)
+	FETCH_MY_TRADES = ("fetchMyTrades", True)
+	FETCH_OHLCV = ("fetchOHLCV", True)
+	FETCH_OPEN_ORDER = ("fetchOpenOrder", True)
+	FETCH_OPEN_ORDERS = ("fetchOpenOrders", True)
+	FETCH_ORDER = ("fetchOrder", True)
+	FETCH_ORDER_BOOK = ("fetchOrderBook", True)
+	FETCH_ORDERS = ("fetchOrders", True)
+	FETCH_ORDERS_ALL_MARKETS = ("fetchOrdersAllMarkets", True)
+	FETCH_STATUS = ("fetchStatus", True)
+	FETCH_TICKER = ("fetchTicker", True)
+	FETCH_TICKERS = ("fetchTickers", True)
+	FETCH_TRADES = ("fetchTrades", True)
+	FETCH_TRADING_FEE = ("fetchTradingFee", True)
+	SET_SANDBOX_MODE = ("setSandboxMode", True)
+	WITHDRAW = ("withdraw", True)
+
+	def __init__(self, id: str, is_private: bool):
+		self.id = id
+		self.is_private = is_private
 
 	@staticmethod
 	def is_equivalent(target: str, method: Any):
-		return str(target).replace("_", "").lower() == method.value.replace("_", "").lower()
+		return str(target).replace("_", "").lower() == method.id.replace("_", "").lower()
 
 	@staticmethod
 	def find(target: str):
