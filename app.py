@@ -48,7 +48,16 @@ async def auth_sign_in(request: Credentials, response: Response):
 		data={"sub": credentials.id}, expires_delta=token_expiration_delta
 	)
 
-	response.set_cookie(key="access_token", value=f"Bearer {token}", httponly=True, secure=True, samesite="lax", max_age=60 * 60 * 1000, path="/", domain="")
+	response.set_cookie(
+		key="token",
+		value=f"Bearer {token}",
+		httponly=properties.get_or_default("server.authentication.cookie.httpOnly", constants.authentication.cookie.httpOnly),
+		secure=properties.get_or_default("server.authentication.cookie.secure", constants.authentication.cookie.secure),
+		samesite=properties.get_or_default("server.authentication.cookie.sameSite", constants.authentication.cookie.sameSite),
+		max_age=properties.get_or_default("server.authentication.cookie.maxAge", constants.authentication.cookie.maxAge),
+		path=properties.get_or_default("server.authentication.cookie.path", constants.authentication.cookie.path),
+		domain=properties.get_or_default("server.authentication.cookie.domain", constants.authentication.cookie.domain),
+	)
 
 	credentials.jwtToken = token
 
@@ -61,7 +70,7 @@ async def auth_sign_in(request: Credentials, response: Response):
 async def auth_sign_out(request: Request, response: Response):
 	await validate(request)
 
-	response.delete_cookie(key="access_token")
+	response.delete_cookie(key="token")
 
 	delete_user(request.get("id"))
 
@@ -77,7 +86,7 @@ async def auth_refresh(request: Request, response: Response):
 		data={"sub": str(request.get("id"))}, expires_delta=token_expiration_delta
 	)
 
-	response.set_cookie(key="access_token", value=f"Bearer {token}", httponly=True, secure=True, samesite="lax", max_age=60 * 60 * 1000, path="/", domain="")
+	response.set_cookie(key="token", value=f"Bearer {token}", httponly=True, secure=True, samesite="lax", max_age=60 * 60 * 1000, path="/", domain="")
 
 	return {"token": token, "type": constants.authentication.jwt.token.type}
 
@@ -142,7 +151,7 @@ async def run(request: Request) -> APIResponse:
 		request.cookies
 	), _dynamic=False)
 
-	user = get_user(str(parameters.get("access_token")).removeprefix('Bearer '))
+	user = get_user(str(parameters.get("token")).removeprefix('Bearer '))
 
 	options = CCXTAPIRequest(
 		user_id=user.id if user else None,

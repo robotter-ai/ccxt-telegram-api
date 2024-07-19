@@ -24,11 +24,19 @@ constants = DotMap({
 				"type": "bearer",
 				"expiration": 30  # in minutes
 			}
+		},
+		"cookie": {
+			"httpOnly": True,
+			"secure": True,
+			"sameSite": "none",
+			"maxAge": 3600000,  # 60*60*1000
+			"path": "/",
+			"domain": ".cube.exchange"
 		}
 	},
 	"errors": {
 		"unauthorized_user": "Unauthorized user.",
-	 	"sign_in_required": "You need to sign in to perform this operation."
+		"sign_in_required": "You need to sign in to perform this operation."
 	},
 	"default": {
 		"exchange": {

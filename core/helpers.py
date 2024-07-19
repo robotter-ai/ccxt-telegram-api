@@ -81,6 +81,9 @@ def update_user(credentials: Credentials) -> DotMap[str, Any]:
 		rest_exchange.set_sandbox_mode(True)
 		websocket_exchange.set_sandbox_mode(True)
 
+	rest_exchange.fetch_markets()
+	rest_exchange.fetch_currencies()
+
 	properties.set(f"""users.{credentials.id}.id""", credentials.id)
 	properties.set(f"""users.{credentials.id}.exchange.{credentials.exchangeId}.{credentials.exchangeEnvironment}.credentials""", credentials)
 	properties.set(f"""users.{credentials.id}.exchange.{credentials.exchangeId}.{credentials.exchangeEnvironment}.{Protocol.REST.value}""", rest_exchange)
@@ -123,7 +126,7 @@ def create_jwt_token(data: dict, expires_delta: datetime.timedelta):
 async def validate_token(request: Request | WebSocket) -> bool:
 	# noinspection PyBroadException,PyUnusedLocal
 	try:
-		token = request.cookies.get("access_token")
+		token = request.cookies.get("token")
 
 		if token:
 			token = token.removeprefix("Bearer ")
