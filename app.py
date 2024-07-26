@@ -205,12 +205,13 @@ def shutdown(*args):
 
 @atexit.register
 def shutdown_helper():
-	shutdown()
-	asyncio.get_event_loop().close()
+	pass
+	# shutdown()
+	# asyncio.get_event_loop().close()
 
 
-app.add_event_handler("startup", startup)
-app.add_event_handler("shutdown", shutdown)
+# app.add_event_handler("startup", startup)
+# app.add_event_handler("shutdown", shutdown)
 
 
 def initialize():
