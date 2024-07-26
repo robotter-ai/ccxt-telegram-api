@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from dotmap import DotMap
 from enum import Enum
 from pydantic import BaseModel
+from starlette.status import *
 from typing import Any, Dict, Optional
 
 
@@ -96,6 +97,19 @@ class Protocol(Enum):
 	FIX = "fix"
 
 
+class APIResponseStatus(Enum):
+	SUCCESS = ("success", HTTP_200_OK)
+	ATTRIBUTE_NOT_FOUND_ERROR = ("attribute_not_found_error", HTTP_404_NOT_FOUND)
+	ATTRIBUTE_NOT_AVAILABLE_ERROR = ("attribute_not_available_error", HTTP_404_NOT_FOUND)
+	EXCHANGE_NOT_AVAILABLE_ERROR = ("exchange_not_available_error", HTTP_404_NOT_FOUND)
+	METHOD_EXECUTION_ERROR = ("method_execution_error", HTTP_400_BAD_REQUEST)
+	UNKNOWN_ERROR = ("unknown_error", HTTP_500_INTERNAL_SERVER_ERROR)
+
+	def __init__(self, id: str, http_code: int):
+		self.id = id
+		self.http_code = http_code
+
+
 class APIRequest:
 	pass
 
@@ -114,7 +128,7 @@ class CCXTAPIRequest(APIRequest):
 class APIResponse:
 	title: str
 	message: str
-	status: str
+	status: APIResponseStatus
 	result: Dict[str, Any] | Any
 
 	def __init__(self):
@@ -123,15 +137,6 @@ class APIResponse:
 
 class CCXTAPIResponse(APIResponse):
 	pass
-
-
-class APIResponseStatus(Enum):
-	SUCCESS = "success"
-	ATTRIBUTE_NOT_FOUND_ERROR = "attribute_not_found_error"
-	ATTRIBUTE_NOT_AVAILABLE_ERROR = "attribute_not_available_error"
-	EXCHANGE_NOT_AVAILABLE_ERROR = "exchange_not_available_error"
-	METHOD_EXECUTION_ERROR = "method_execution_error"
-	UNKNOWN_ERROR = "unknown_error"
 
 
 class Credentials(BaseModel):

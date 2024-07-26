@@ -23,6 +23,7 @@ async def ccxt(request: CCXTAPIRequest) -> CCXTAPIResponse:
 					response.title = f"""{exchange_id}.{exchange_method}"""
 					response.message = f"""Successfully executed "{exchange_id}.{exchange_method}(***)"."""
 					response.status = APIResponseStatus.SUCCESS
+					response.status_code = response.status.http_code
 					if exchange_method_parameters is None:
 						response.result = attribute()
 					else:
@@ -33,6 +34,7 @@ async def ccxt(request: CCXTAPIRequest) -> CCXTAPIResponse:
 					response.title = f"""{exchange_id}.{exchange_method}"""
 					response.message = f"""An error has occurred when trying to execute "{exchange_id}.{exchange_method}(***)". Error: "{exception}"."""
 					response.status = APIResponseStatus.METHOD_EXECUTION_ERROR
+					response.status_code = response.status.http_code
 					response.result = {"exception": f"""{exception}"""}
 
 					return response
@@ -41,6 +43,7 @@ async def ccxt(request: CCXTAPIRequest) -> CCXTAPIResponse:
 					response.title = f"""{exchange_id}.{exchange_method}"""
 					response.message = f"""Successfully got "{exchange_id}.{exchange_method}"."""
 					response.status = APIResponseStatus.SUCCESS
+					response.status_code = response.status.http_code
 					response.result = {exchange_method: attribute}
 
 					return response
@@ -48,6 +51,7 @@ async def ccxt(request: CCXTAPIRequest) -> CCXTAPIResponse:
 					response.title = f"""{exchange_id}.{exchange_method}"""
 					response.message = f"""An error has occurred when trying to get "{exchange_id}.{exchange_method}". Error: "{exception}"."""
 					response.status = APIResponseStatus.ATTRIBUTE_NOT_FOUND_ERROR
+					response.status_code = response.status.http_code
 					response.result = {"exception": f"""{exception}"""}
 
 					return response
@@ -57,6 +61,7 @@ async def ccxt(request: CCXTAPIRequest) -> CCXTAPIResponse:
 			response.title = f"""{exchange_id}.{exchange_method}"""
 			response.message = f"""An error has occurred when trying to execute "{exchange_id}.{exchange_method}". Error: "{exception}"."""
 			response.status = APIResponseStatus.ATTRIBUTE_NOT_AVAILABLE_ERROR
+			response.status_code = response.status.http_code
 			response.result = {"exception": f"""{exception}"""}
 
 			return response
@@ -66,6 +71,7 @@ async def ccxt(request: CCXTAPIRequest) -> CCXTAPIResponse:
 		response.title = f"""{exchange_id}.{exchange_method}"""
 		response.message = f"""An error has occurred when trying to execute "{exchange_id}.{exchange_method}". Error: "{exception}"."""
 		response.status = APIResponseStatus.EXCHANGE_NOT_AVAILABLE_ERROR
+		response.status_code = response.status.http_code
 		response.result = {"exception": f"""{exception}"""}
 
 		return response

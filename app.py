@@ -10,13 +10,14 @@ from dotmap import DotMap
 from fastapi import FastAPI, Response
 from pathlib import Path
 from starlette.requests import Request
+from starlette.responses import JSONResponse
 from typing import Any, Dict
 
 from core import controller
 from core.constants import constants
 from core.model import model
 from core.properties import properties
-from core.types import SystemStatus, APIResponse, CCXTAPIRequest, Credentials
+from core.types import SystemStatus, APIResponse, CCXTAPIRequest, Credentials, APIResponseStatus
 from core.utils import deep_merge
 from tests.integration_tests import IntegrationTests
 
@@ -115,7 +116,7 @@ async def service_status(request: Request) -> Dict[str, Any]:
 @app.patch("/run/{subpath:path}")
 @app.head("/run/{subpath:path}")
 @app.options("/run/{subpath:path}")
-async def run(request: Request) -> APIResponse:
+async def run(request: Request) -> JSONResponse:
 	await validate(request)
 
 	headers = DotMap(dict(request.headers))
@@ -162,7 +163,19 @@ async def run(request: Request) -> APIResponse:
 		exchange_method_parameters=parameters.get("parameters")
 	)
 
-	return await controller.ccxt(options)
+	response = await controller.ccxt(options)
+
+	json_response = JSONResponse(
+		status_code=response.status.http_code,
+		content={
+			"title": response.title,
+			"message": response.message,
+			"status": response.status.id,
+			"result": response.result
+		}
+	)
+
+	return json_response
 
 
 async def start_api():
