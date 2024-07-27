@@ -103,6 +103,7 @@ class APIResponseStatus(Enum):
 	ATTRIBUTE_NOT_AVAILABLE_ERROR = ("attribute_not_available_error", HTTP_404_NOT_FOUND)
 	EXCHANGE_NOT_AVAILABLE_ERROR = ("exchange_not_available_error", HTTP_404_NOT_FOUND)
 	METHOD_EXECUTION_ERROR = ("method_execution_error", HTTP_400_BAD_REQUEST)
+	UNAUTHORIZED = ("unauthorized_error", HTTP_401_UNAUTHORIZED)
 	UNKNOWN_ERROR = ("unknown_error", HTTP_500_INTERNAL_SERVER_ERROR)
 
 	def __init__(self, id: str, http_code: int):
@@ -124,15 +125,11 @@ class CCXTAPIRequest(APIRequest):
 	exchange_method_parameters: DotMap[str, Any] = None
 
 
-@dataclass
-class APIResponse:
+class APIResponse(DotMap):
 	title: str
 	message: str
 	status: APIResponseStatus
 	result: Dict[str, Any] | Any
-
-	def __init__(self):
-		pass
 
 
 class CCXTAPIResponse(APIResponse):

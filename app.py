@@ -92,6 +92,35 @@ async def auth_refresh(request: Request, response: Response):
 	return {"token": token, "type": constants.authentication.jwt.token.type}
 
 
+# noinspection PyUnusedLocal
+@app.get("/auth/isSignedIn")
+async def is_signed_in(request: Request, response: Response):
+	user = get_user(request.get("id"))
+
+	response = APIResponse()
+
+	if user:
+		response.title = "User is Signed In"
+		response.message = "User has already signed in."
+		response.result = True
+
+		json_response = JSONResponse(
+			status_code=APIResponseStatus.SUCCESS.http_code,
+			content=response.toDict()
+		)
+	else:
+		response.title = "User Is not Signed In"
+		response.message = "User has not signed in."
+		response.result = False
+
+		json_response = JSONResponse(
+			status_code=APIResponseStatus.UNAUTHORIZED.http_code,
+			content=response.toDict()
+		)
+
+	return json_response
+
+
 @app.get("/service/status")
 async def service_status(request: Request) -> Dict[str, Any]:
 	await validate(request)
