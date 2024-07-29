@@ -109,6 +109,7 @@ async def auth_refresh(request: Request, response: Response):
 
 
 # noinspection PyUnusedLocal
+@app.get("/auth/isSignedIn")
 @app.post("/auth/isSignedIn")
 async def is_signed_in(request: Request, response: Response):
 	try:
