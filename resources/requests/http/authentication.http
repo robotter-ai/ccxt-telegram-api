@@ -25,9 +25,9 @@ Authorization: Bearer {{token}}
 
 ###
 
-GET http://{{host}}:{{port}}/auth/isSignedIn
-Authorization: Bearer {{token}}
+POST http://{{host}}:{{port}}/auth/isSignedIn
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
   "id": "{{userTelegramId}}"

@@ -1,3 +1,5 @@
+from json import JSONDecodeError
+
 import asyncio
 import atexit
 import datetime
@@ -71,9 +73,15 @@ async def auth_sign_in(request: Credentials, response: Response):
 async def auth_sign_out(request: Request, response: Response):
 	await validate(request)
 
+	try:
+		body = DotMap(await request.json(), _dynamic=False)
+	except JSONDecodeError:
+		body = DotMap({}, _dynamic=False)
+
+	token = request.cookies.get("token")
 	response.delete_cookie(key="token")
 
-	delete_user(request.get("id"))
+	delete_user(token)
 
 	return {"message": "Cookie successfully deleted."}
 
@@ -82,9 +90,17 @@ async def auth_sign_out(request: Request, response: Response):
 async def auth_refresh(request: Request, response: Response):
 	await validate(request)
 
+	try:
+		body = DotMap(await request.json(), _dynamic=False)
+	except JSONDecodeError:
+		body = DotMap({}, _dynamic=False)
+
+	token = request.cookies.get("token")
+	user = get_user(token)
+
 	token_expiration_delta = datetime.timedelta(minutes=constants.authentication.jwt.token.expiration)
 	token = create_jwt_token(
-		data={"sub": str(request.get("id"))}, expires_delta=token_expiration_delta
+		data={"sub": str(user.id)}, expires_delta=token_expiration_delta
 	)
 
 	response.set_cookie(key="token", value=f"Bearer {token}", httponly=True, secure=True, samesite="lax", max_age=60 * 60 * 1000, path="/", domain="")
@@ -93,9 +109,14 @@ async def auth_refresh(request: Request, response: Response):
 
 
 # noinspection PyUnusedLocal
-@app.get("/auth/isSignedIn")
+@app.post("/auth/isSignedIn")
 async def is_signed_in(request: Request, response: Response):
-	user = get_user(request.get("id"))
+	try:
+		body = DotMap(await request.json(), _dynamic=False)
+	except JSONDecodeError:
+		body = DotMap({}, _dynamic=False)
+
+	user = get_user(body.get("id"))
 
 	response = APIResponse()
 
