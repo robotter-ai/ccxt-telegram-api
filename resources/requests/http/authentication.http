@@ -30,7 +30,7 @@ Content-Type: application/json
 Authorization: Bearer {{token}}
 
 {
-  "id": "{{userTelegramId}}"
+  "userTelegramId": "{{userTelegramId}}"
 }
 
 ###

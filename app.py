@@ -117,7 +117,9 @@ async def is_signed_in(request: Request, response: Response):
 	except JSONDecodeError:
 		body = DotMap({}, _dynamic=False)
 
-	user = get_user(body.get("id"))
+	id_or_user_telegram_id_or_jwt_token = request.cookies.get("token", body.get("userTelegramId")).removeprefix("Bearer ")
+
+	user = get_user(id_or_user_telegram_id_or_jwt_token)
 
 	response = APIResponse()
 
