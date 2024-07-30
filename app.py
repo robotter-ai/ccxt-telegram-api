@@ -30,7 +30,7 @@ properties.load(app)
 # Needs to come after properties loading
 from core.logger import logger
 from core.helpers import authenticate, unauthorized_exception, create_jwt_token, update_user, validate, \
-	delete_user, get_user, extract_jwt_token, extract_all_parameters
+	delete_user, get_user, extract_jwt_token, extract_all_parameters, validate_request_token
 from core.telegram_bot import telegram
 
 
@@ -113,7 +113,7 @@ async def is_signed_in(request: Request, response: Response):
 
 	response = APIResponse()
 
-	if user:
+	if user or not validate_request_token(token):
 		response.title = "User is Signed In"
 		response.message = "User has already signed in."
 		response.result = True
