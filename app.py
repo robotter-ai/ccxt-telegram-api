@@ -1,5 +1,3 @@
-from json import JSONDecodeError
-
 import asyncio
 import atexit
 import datetime
@@ -32,7 +30,7 @@ properties.load(app)
 # Needs to come after properties loading
 from core.logger import logger
 from core.helpers import authenticate, unauthorized_exception, create_jwt_token, update_user, validate, \
-	delete_user, get_user, extract_jwt_token, extract_all_parameters, extract_id_or_user_telegram_id_or_jwt_token
+	delete_user, get_user, extract_jwt_token, extract_all_parameters
 from core.telegram_bot import telegram
 
 
@@ -109,9 +107,9 @@ async def auth_refresh(request: Request, response: Response):
 async def is_signed_in(request: Request, response: Response):
 	parameters = await extract_all_parameters(request)
 
-	id_or_user_telegram_id_or_jwt_token = extract_id_or_user_telegram_id_or_jwt_token(parameters)
+	token = extract_jwt_token(parameters)
 
-	user = get_user(id_or_user_telegram_id_or_jwt_token)
+	user = get_user(token)
 
 	response = APIResponse()
 
