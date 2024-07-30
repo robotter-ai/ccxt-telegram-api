@@ -20,7 +20,6 @@ from core.constants import constants
 from core.model import model
 from core.properties import properties
 from core.types import SystemStatus, APIResponse, CCXTAPIRequest, Credentials, APIResponseStatus
-from core.utils import deep_merge
 from tests.integration_tests import IntegrationTests
 
 RUN_INTEGRATION_TESTS = os.getenv("RUN_INTEGRATION_TESTS", properties.get_or_default("testing.integration.run", "false")).lower() in ["true", "1"]
@@ -33,7 +32,7 @@ properties.load(app)
 # Needs to come after properties loading
 from core.logger import logger
 from core.helpers import authenticate, unauthorized_exception, create_jwt_token, update_user, validate, \
-	delete_user, get_user
+	delete_user, get_user, extract_jwt_token, extract_all_parameters, extract_id_or_user_telegram_id_or_jwt_token
 from core.telegram_bot import telegram
 
 
@@ -73,12 +72,10 @@ async def auth_sign_in(request: Credentials, response: Response):
 async def auth_sign_out(request: Request, response: Response):
 	await validate(request)
 
-	try:
-		body = DotMap(await request.json(), _dynamic=False)
-	except JSONDecodeError:
-		body = DotMap({}, _dynamic=False)
+	parameters = await extract_all_parameters(request)
 
-	token = request.cookies.get("token")
+	token = extract_jwt_token(parameters)
+
 	response.delete_cookie(key="token")
 
 	delete_user(token)
@@ -90,12 +87,10 @@ async def auth_sign_out(request: Request, response: Response):
 async def auth_refresh(request: Request, response: Response):
 	await validate(request)
 
-	try:
-		body = DotMap(await request.json(), _dynamic=False)
-	except JSONDecodeError:
-		body = DotMap({}, _dynamic=False)
+	parameters = await extract_all_parameters(request)
 
-	token = request.cookies.get("token")
+	token = extract_jwt_token(parameters)
+
 	user = get_user(token)
 
 	token_expiration_delta = datetime.timedelta(minutes=constants.authentication.jwt.token.expiration)
@@ -112,12 +107,9 @@ async def auth_refresh(request: Request, response: Response):
 @app.get("/auth/isSignedIn")
 @app.post("/auth/isSignedIn")
 async def is_signed_in(request: Request, response: Response):
-	try:
-		body = DotMap(await request.json(), _dynamic=False)
-	except JSONDecodeError:
-		body = DotMap({}, _dynamic=False)
+	parameters = await extract_all_parameters(request)
 
-	id_or_user_telegram_id_or_jwt_token = request.cookies.get("token", body.get("userTelegramId")).removeprefix("Bearer ")
+	id_or_user_telegram_id_or_jwt_token = extract_id_or_user_telegram_id_or_jwt_token(parameters)
 
 	user = get_user(id_or_user_telegram_id_or_jwt_token)
 
@@ -172,40 +164,11 @@ async def service_status(request: Request) -> Dict[str, Any]:
 async def run(request: Request) -> JSONResponse:
 	await validate(request)
 
-	headers = DotMap(dict(request.headers))
+	parameters = await extract_all_parameters(request)
 
-	path_parameters = DotMap(request.path_params)
+	token = extract_jwt_token(parameters)
 
-	query_parameters = DotMap(request.query_params)
-	# noinspection PyBroadException,PyUnusedLocal
-	try:
-		body = DotMap(await request.json())
-	except Exception as exception:
-		body = DotMap({})
-
-	parameters = DotMap({}, _dynamic=False)
-	parameters = DotMap(deep_merge(
-		parameters.toDict(),
-		headers
-	), _dynamic=False)
-	parameters = DotMap(deep_merge(
-		parameters.toDict(),
-		path_parameters
-	), _dynamic=False)
-	parameters = DotMap(deep_merge(
-		parameters.toDict(),
-		query_parameters
-	), _dynamic=False)
-	parameters = DotMap(deep_merge(
-		parameters.toDict(),
-		body.toDict()
-	), _dynamic=False)
-	parameters = DotMap(deep_merge(
-		parameters.toDict(),
-		request.cookies
-	), _dynamic=False)
-
-	user = get_user(str(parameters.get("token")).removeprefix('Bearer '))
+	user = get_user(token)
 
 	options = CCXTAPIRequest(
 		user_id=user.id if user else None,

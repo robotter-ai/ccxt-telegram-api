@@ -19,6 +19,7 @@ from ccxt.async_support import Exchange as WebSocketExchange
 from core.constants import constants
 from core.properties import properties
 from core.types import Protocol, Credentials, Environment
+from core.utils import deep_merge
 
 ccxt = sync_ccxt
 
@@ -30,6 +31,71 @@ unauthorized_exception = HTTPException(
 	detail="Unauthorized",
 	headers={"WWW-Authenticate": "Bearer"},
 )
+
+
+async def extract_all_parameters(request: Request):
+	headers = DotMap(dict(request.headers), _dynamic=False)
+
+	path_parameters = DotMap(request.path_params, _dynamic=False)
+
+	query_parameters = DotMap(request.query_params, _dynamic=False)
+
+	# noinspection PyBroadException,PyUnusedLocal
+	try:
+		body = DotMap(await request.json())
+	except Exception as exception:
+		body = DotMap({})
+
+	parameters = DotMap({}, _dynamic=False)
+	parameters = DotMap(deep_merge(
+		parameters.toDict(),
+		headers
+	), _dynamic=False)
+	parameters = DotMap(deep_merge(
+		parameters.toDict(),
+		path_parameters
+	), _dynamic=False)
+	parameters = DotMap(deep_merge(
+		parameters.toDict(),
+		query_parameters
+	), _dynamic=False)
+	parameters = DotMap(deep_merge(
+		parameters.toDict(),
+		body.toDict()
+	), _dynamic=False)
+	parameters = DotMap(deep_merge(
+		parameters.toDict(),
+		request.cookies
+	), _dynamic=False)
+
+	parameters._dynamic = False
+
+	return parameters
+
+
+def extract_id_or_user_telegram_id_or_jwt_token(parameters: DotMap[str, Any]):
+	id_or_user_telegram_id_or_jwt_token = parameters.get("id")
+	if not id_or_user_telegram_id_or_jwt_token:
+		id_or_user_telegram_id_or_jwt_token = parameters.get("userTelegramId")
+	if not id_or_user_telegram_id_or_jwt_token:
+		id_or_user_telegram_id_or_jwt_token = extract_jwt_token(parameters)
+
+	return id_or_user_telegram_id_or_jwt_token
+
+
+def extract_jwt_token(parameters: DotMap[str, Any]):
+	token = parameters.get("token")
+	if not token:
+		token = parameters.get("authorization")
+	if not token:
+		token = parameters.get("cookie")
+
+	if token:
+		token = token.removeprefix("Bearer ").removeprefix("token=")
+
+		return token
+
+	return None
 
 
 def get_user_exchange(id_or_user_telegram_id_or_jwt_token: str | int, exchange_id: str, exchange_environment: Environment, exchange_protocol: Protocol) -> Optional[RESTExchange | WebSocketExchange]:

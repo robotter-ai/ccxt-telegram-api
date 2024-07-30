@@ -7,7 +7,7 @@ Content-Type: application/json
   "environment": "{{exchangeEnvironment}}",
   "method": "fetch_ticker",
   "parameters": {
-    "symbol": "BTC/USDT"
+    "symbol": "tSOL/tUSDC"
   }
 }
 
@@ -21,7 +21,34 @@ Content-Type: application/json
   "exchangeId": "{{exchangeId}}",
   "environment": "{{exchangeEnvironment}}",
   "method": "fetch_markets",
-  "parameters": null
+  "parameters": {}
+}
+
+###
+
+POST http://{{host}}:{{port}}/run/
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "exchangeId": "{{exchangeId}}",
+  "environment": "{{exchangeEnvironment}}",
+  "method": "fetch_balance",
+  "parameters": {}
+}
+
+###
+
+POST http://{{host}}:{{port}}/run/
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "exchangeId": "{{exchangeId}}",
+  "environment": "{{exchangeEnvironment}}",
+  "method": "fetch_open_orders",
+  "parameters": {
+  }
 }
 
 ###
