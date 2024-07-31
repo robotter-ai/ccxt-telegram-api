@@ -5,7 +5,20 @@ Content-Type: application/json
 {
   "exchangeId": "{{exchangeId}}",
   "environment": "{{exchangeEnvironment}}",
-  "method": "fetch_ticker",
+  "method": "fetch_markets",
+  "parameters": {}
+}
+
+###
+
+POST http://{{host}}:{{port}}/run/
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "exchangeId": "{{exchangeId}}",
+  "environment": "{{exchangeEnvironment}}",
+  "method": "fetch_ohlcv",
   "parameters": {
     "symbol": "tSOL/tUSDC"
   }
@@ -20,8 +33,10 @@ Content-Type: application/json
 {
   "exchangeId": "{{exchangeId}}",
   "environment": "{{exchangeEnvironment}}",
-  "method": "fetch_markets",
-  "parameters": {}
+  "method": "fetch_ticker",
+  "parameters": {
+    "symbol": "tSOL/tUSDC"
+  }
 }
 
 ###
@@ -52,4 +67,3 @@ Content-Type: application/json
 }
 
 ###
-
