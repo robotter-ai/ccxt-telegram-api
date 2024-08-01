@@ -156,7 +156,7 @@ class Telegram(object):
 
 				return False
 
-			if not self.is_admin(update.message.from_user.username):
+			if not self.is_admin(update.effective_user.name):
 				await self.send_message(constants.errors.unauthorized_user, update, update.callback_query)
 
 				return False
@@ -305,18 +305,19 @@ class Telegram(object):
 					await self.send_message("Sign in cancelled.", update, context, query)
 				else:
 					await self.send_message("""Please type "confirm" to sign in or "cancel" to abort.""", update, context, query)
-		elif data["sign_out_step"] == "confirm":
-			text = text.lower()
-			if text == "confirm":
-				try:
-					await self.sign_out(update, context, query)
-				finally:
+		elif "sign_out_step" in data:
+			if data["sign_out_step"] == "confirm":
+				text = text.lower()
+				if text == "confirm":
+					try:
+						await self.sign_out(update, context, query)
+					finally:
+						data.clear()
+				elif text.lower() == "cancel":
 					data.clear()
-			elif text.lower() == "cancel":
-				data.clear()
-				await self.send_message("Sign out cancelled.", update, context, query)
-			else:
-				await self.send_message("""Please type "confirm" to sign out or "cancel" to abort.""", update, context, query)
+					await self.send_message("Sign out cancelled.", update, context, query)
+				else:
+					await self.send_message("""Please type "confirm" to sign out or "cancel" to abort.""", update, context, query)
 		elif "balance_step" in data:
 			if data["balance_step"] == "ask_token_id":
 				if self.model.validate_token_id(text):
@@ -594,7 +595,7 @@ class Telegram(object):
 
 	# noinspection PyMethodMayBeStatic
 	def get_user_exchange(self, update: Update):
-		user_telegram_id = update.message.from_user.id
+		user_telegram_id = update.effective_user.id
 		exchange_id = properties.get_or_default("exchange.id")
 		exchange_environment = Environment.get_by_id(properties.get_or_default(f"exchange.environment"))
 		exchange_protocol = Protocol.REST
@@ -758,20 +759,30 @@ class Telegram(object):
 				await self.send_message("""You have already signed in.""", update, context, query)
 				return
 
-			exchange_id = (context.args[0:1] or [None])[0]
-			exchange_environment = (context.args[1:2] or [None])[0]
-			exchange_api_key = (context.args[2:3] or [None])[0]
-			exchange_api_secret = (context.args[3:4] or [None])[0]
-			exchange_options_sub_account_id = (context.args[4:5] or [None])[0]
-			exchange_options = DotMap({
-				"sub_account_id": exchange_options_sub_account_id
-			}, _dynamic=False)
-
-			if not exchange_id:
-				exchange_id = properties.get("exchange.id", constants.default.exchange.id)
-
-			if not exchange_environment:
-				exchange_environment = properties.get(f"exchange.environment", Environment.PRODUCTION.value)
+			if len(context.args) == 3:
+				exchange_id = properties.get_or_default("exchange.id", constants.default.exchange.id)
+				exchange_environment = properties.get_or_default("exchange.environment", Environment.PRODUCTION.value)
+				exchange_api_key = (context.args[0:1] or [None])[0]
+				exchange_api_secret = (context.args[1:2] or [None])[0]
+				exchange_options_sub_account_id = (context.args[2:3] or [None])[0]
+				exchange_options = DotMap({
+					"sub_account_id": exchange_options_sub_account_id
+				}, _dynamic=False)
+			elif len(context.args) == 5:
+				exchange_id = (context.args[0:1] or [None])[0]
+				exchange_environment = (context.args[1:2] or [None])[0]
+				exchange_api_key = (context.args[2:3] or [None])[0]
+				exchange_api_secret = (context.args[3:4] or [None])[0]
+				exchange_options_sub_account_id = (context.args[4:5] or [None])[0]
+				exchange_options = DotMap({
+					"sub_account_id": exchange_options_sub_account_id
+				}, _dynamic=False)
+			else:
+				exchange_id = None
+				exchange_environment = None
+				exchange_api_key = None
+				exchange_api_secret = None
+				exchange_options = None
 		elif data:
 			exchange_id = data.get("exchange_id", None)
 			exchange_environment = data.get("exchange_environment", None)
@@ -816,7 +827,7 @@ class Telegram(object):
 			return
 
 		parameters = {
-			"userTelegramId": update.message.from_user.id,
+			"userTelegramId": update.effective_user.id,
 			"jwtToken": None,
 			"exchangeId": exchange_id,
 			"exchangeEnvironment": exchange_environment,
