@@ -1,3 +1,5 @@
+import traceback
+
 from core.properties import properties
 from core.types import APIResponseStatus, CCXTAPIRequest, CCXTAPIResponse, Environment, Protocol
 
@@ -31,11 +33,15 @@ async def ccxt(request: CCXTAPIRequest) -> CCXTAPIResponse:
 
 					return response
 				except Exception as exception:
+					full_stack_trace = traceback.format_exc()
 					response.title = f"""{exchange_id}.{exchange_method}"""
 					response.message = f"""An error has occurred when trying to execute "{exchange_id}.{exchange_method}(***)". Error: "{exception}"."""
 					response.status = APIResponseStatus.METHOD_EXECUTION_ERROR
 					response.status_code = response.status.http_code
-					response.result = {"exception": f"""{exception}"""}
+					response.result = {
+						"exception": f"""{exception}""",
+						"stack_trace": full_stack_trace
+					}
 
 					return response
 			else:
@@ -48,11 +54,15 @@ async def ccxt(request: CCXTAPIRequest) -> CCXTAPIResponse:
 
 					return response
 				except Exception as exception:
+					full_stack_trace = traceback.format_exc()
 					response.title = f"""{exchange_id}.{exchange_method}"""
 					response.message = f"""An error has occurred when trying to get "{exchange_id}.{exchange_method}". Error: "{exception}"."""
 					response.status = APIResponseStatus.ATTRIBUTE_NOT_FOUND_ERROR
 					response.status_code = response.status.http_code
-					response.result = {"exception": f"""{exception}"""}
+					response.result = {
+						"exception": f"""{exception}""",
+						"stack_trace": full_stack_trace
+					}
 
 					return response
 		else:
