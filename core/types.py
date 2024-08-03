@@ -101,7 +101,7 @@ class APIResponseStatus(Enum):
 	SUCCESS = ("success", HTTP_200_OK)
 	ATTRIBUTE_NOT_FOUND_ERROR = ("attribute_not_found_error", HTTP_404_NOT_FOUND)
 	ATTRIBUTE_NOT_AVAILABLE_ERROR = ("attribute_not_available_error", HTTP_404_NOT_FOUND)
-	EXCHANGE_NOT_AVAILABLE_ERROR = ("exchange_not_available_error", HTTP_404_NOT_FOUND)
+	EXCHANGE_NOT_AVAILABLE_ERROR = ("exchange_not_available_error", HTTP_401_UNAUTHORIZED)
 	METHOD_EXECUTION_ERROR = ("method_execution_error", HTTP_400_BAD_REQUEST)
 	EXPECTATION_FAILED_ERROR = ("expectation_failed_error", HTTP_417_EXPECTATION_FAILED)
 	UNAUTHORIZED_ERROR = ("unauthorized_error", HTTP_401_UNAUTHORIZED)
