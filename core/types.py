@@ -104,6 +104,7 @@ class APIResponseStatus(Enum):
 	EXCHANGE_NOT_AVAILABLE_ERROR = ("exchange_not_available_error", HTTP_404_NOT_FOUND)
 	METHOD_EXECUTION_ERROR = ("method_execution_error", HTTP_400_BAD_REQUEST)
 	EXPECTATION_FAILED_ERROR = ("expectation_failed_error", HTTP_417_EXPECTATION_FAILED)
+	UNAUTHORIZED_ERROR = ("unauthorized_error", HTTP_401_UNAUTHORIZED)
 	UNKNOWN_ERROR = ("unknown_error", HTTP_500_INTERNAL_SERVER_ERROR)
 
 	def __init__(self, id: str, http_code: int):

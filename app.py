@@ -105,47 +105,34 @@ async def auth_refresh(request: Request, response: Response):
 @app.get("/auth/isSignedIn")
 @app.post("/auth/isSignedIn")
 async def is_signed_in(request: Request, response: Response):
+	await validate(request)
+
 	response = APIResponse()
 
-	try:
-		await validate(request)
+	parameters = await extract_all_parameters(request)
 
-		parameters = await extract_all_parameters(request)
+	token = extract_jwt_token(parameters)
 
-		token = extract_jwt_token(parameters)
+	user = get_user(token)
 
-		user = get_user(token)
+	if user or not validate_request_token(token):
+		response.title = "User is Signed In"
+		response.message = "User has already signed in."
+		response.result = True
 
-		if user or not validate_request_token(token):
-			response.title = "User is Signed In"
-			response.message = "User has already signed in."
-			response.result = True
+		return JSONResponse(
+			status_code=APIResponseStatus.SUCCESS.http_code,
+			content=response.toDict()
+		)
+	else:
+		response.title = "User Is not Signed In"
+		response.message = "User has not signed in."
+		response.result = False
 
-			return JSONResponse(
-				status_code=APIResponseStatus.SUCCESS.http_code,
-				content=response.toDict()
-			)
-		else:
-			response.title = "User Is not Signed In"
-			response.message = "User has not signed in."
-			response.result = False
-
-			return JSONResponse(
-				status_code=APIResponseStatus.EXPECTATION_FAILED_ERROR.http_code,
-				content=response.toDict()
-			)
-	except HTTPException as exception:
-		if exception.status_code == APIResponseStatus.UNAUTHORIZED_ERROR.http_code:
-			response.title = "User Is Not Authorized"
-			response.message = "User token has expired."
-			response.result = False
-
-			return JSONResponse(
-				status_code=APIResponseStatus.EXPECTATION_FAILED_ERROR.http_code,
-				content=response.toDict()
-			)
-
-		raise exception
+		return JSONResponse(
+			status_code=APIResponseStatus.EXPECTATION_FAILED_ERROR.http_code,
+			content=response.toDict()
+		)
 
 
 @app.get("/service/status")
