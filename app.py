@@ -105,6 +105,8 @@ async def auth_refresh(request: Request, response: Response):
 @app.get("/auth/isSignedIn")
 @app.post("/auth/isSignedIn")
 async def is_signed_in(request: Request, response: Response):
+	await validate(request)
+
 	parameters = await extract_all_parameters(request)
 
 	token = extract_jwt_token(parameters)
@@ -128,7 +130,7 @@ async def is_signed_in(request: Request, response: Response):
 		response.result = False
 
 		json_response = JSONResponse(
-			status_code=APIResponseStatus.UNAUTHORIZED.http_code,
+			status_code=APIResponseStatus.EXPECTATION_FAILED_ERROR.http_code,
 			content=response.toDict()
 		)
 
