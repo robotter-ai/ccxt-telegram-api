@@ -1,6 +1,8 @@
+import codecs
 import json
 import os
 import requests
+import sys
 import textwrap
 from dotmap import DotMap
 from singleton.singleton import ThreadSafeSingleton
@@ -22,6 +24,11 @@ from core.properties import properties
 from core.types import MagicMethod, Credentials, Protocol, Environment
 
 ccxt = sync_ccxt
+
+
+os.environ['PYTHONUTF8'] = '1'
+sys.stdout = codecs.getwriter("utf-8")(sys.stdout.detach())
+sys.stderr = codecs.getwriter("utf-8")(sys.stderr.detach())
 
 
 TELEGRAM_TOKEN: bool = os.getenv("TELEGRAM_TOKEN", properties.get_or_default("telegram.token", None))
@@ -145,7 +152,7 @@ class Telegram(object):
 	def is_signed_in(self, user_telegram_id):
 		if get_user(user_telegram_id):
 			return True
-		
+
 		return False
 
 	async def validate_request(self, update: Update, context: ContextTypes.DEFAULT_TYPE, is_private_operation: bool = False) -> bool:
