@@ -192,6 +192,39 @@ async def run(request: Request) -> JSONResponse:
 	return json_response
 
 
+@app.get("/development/example")
+@app.post("/development/example")
+@app.put("/development/example")
+@app.delete("/development/example")
+@app.patch("/development/example")
+@app.head("/development/example")
+@app.options("/development/example")
+@app.get("/development/example/{subpath:path}")
+@app.post("/development/example/{subpath:path}")
+@app.post("/development/example/{subpath:path}")
+@app.put("/development/example/{subpath:path}")
+@app.delete("/development/example/{subpath:path}")
+@app.patch("/development/example/{subpath:path}")
+@app.head("/development/example/{subpath:path}")
+@app.options("/development/example/{subpath:path}")
+async def development_example(request: Request) -> JSONResponse:
+	await validate(request)
+
+	parameters = await extract_all_parameters(request)
+
+	json_response = JSONResponse(
+		status_code=APIResponseStatus.SUCCESS.http_code,
+		content={
+			"title": 'Title',
+			"message": 'Message.',
+			"status": APIResponseStatus.SUCCESS.id,
+			"result": parameters.toDict()
+		}
+	)
+
+	return json_response
+
+
 async def start_api():
 	signal.signal(signal.SIGTERM, shutdown)
 	signal.signal(signal.SIGINT, shutdown)
