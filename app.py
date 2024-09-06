@@ -7,7 +7,7 @@ import os
 import signal
 import uvicorn
 from dotmap import DotMap
-from fastapi import FastAPI, Response, HTTPException
+from fastapi import FastAPI, Response
 from pathlib import Path
 from starlette.requests import Request
 from starlette.responses import JSONResponse
