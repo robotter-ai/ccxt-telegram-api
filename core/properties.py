@@ -44,7 +44,7 @@ class Properties(object):
 			configuration = deep_merge(configuration, target)
 
 		if os.environ.get('ENVIRONMENT'):
-			configuration['environment'] = os.environ['ENVIRONMENT']
+			configuration['environment'] = os.environ.get('ENVIRONMENT', configuration['environment'])
 
 		with open(os.path.join(root_path, constants.configuration.relative_folder, constants.configuration.environment[configuration['environment']]), 'r') as stream:
 			target = yaml.safe_load(stream) or {}
