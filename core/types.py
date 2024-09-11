@@ -106,6 +106,11 @@ class APIResponseStatus(Enum):
 	EXPECTATION_FAILED_ERROR = ("expectation_failed_error", HTTP_417_EXPECTATION_FAILED)
 	UNAUTHORIZED_ERROR = ("unauthorized_error", HTTP_401_UNAUTHORIZED)
 	UNKNOWN_ERROR = ("unknown_error", HTTP_500_INTERNAL_SERVER_ERROR)
+	# INVALID_ORDER_ERROR = ("invalid_order_error", HTTP_400_BAD_REQUEST)
+	# ORDER_NOT_FOUND_ERROR = ("order_not_found_error", HTTP_404_NOT_FOUND)
+	# DUPLICATE_ORDER_ERROR = ("duplicate_order_error", HTTP_409_CONFLICT)
+	# OPERATION_REJECTED_ERROR = ("operation_rejected_error", HTTP_400_BAD_REQUEST)
+	# ARGUMENTS_REQUIRED_ERROR = ("arguments_required_error", HTTP_400_BAD_REQUEST)
 
 	def __init__(self, id: str, http_code: int):
 		self.id = id
