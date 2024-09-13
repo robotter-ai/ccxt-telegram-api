@@ -105,7 +105,7 @@ def handle_method_call_exception(exception: Exception, exchange_method: str, exc
 def handle_create_order_exception_message(exception: Exception) -> str:
 	message = str(exception)
 
-	return f'Failed to create order: {message}'
+	return message
 
 	# if 'OrderType was not recognized' in message:
 	# 	return 'Failed to create order: Order type not recognized.'
@@ -160,7 +160,7 @@ def handle_create_order_exception_message(exception: Exception) -> str:
 def handle_cancel_order_exception_message(exception: Exception) -> str:
 	message = str(exception)
 
-	return f'Failed to cancel order: {message}'
+	return message
 
 	# # Rej
 	# if 'Order cancellation rejected for clientOrderId' in message:
