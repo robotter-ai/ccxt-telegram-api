@@ -67,3 +67,18 @@ Content-Type: application/json
 }
 
 ###
+
+POST http://{{host}}:{{port}}/run/
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "exchangeId": "{{exchangeId}}",
+  "environment": "{{exchangeEnvironment}}",
+  "method": "fetch_order_book",
+  "parameters": {
+    "symbol": "BTC/USDC"
+  }
+}
+
+###
