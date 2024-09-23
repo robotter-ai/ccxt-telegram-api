@@ -1,4 +1,4 @@
-GET https://{{host}}:{{port}}/development/test
+POST http://{{host}}:{{port}}/development/example
 Authorization: Bearer {{token}}
 Content-Type: application/json
 
