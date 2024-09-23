@@ -106,6 +106,12 @@ class Properties(object):
 		self.set("resources_path", os.path.join(self.get("root_path"), "resources"))
 		self.set("resources_configuration_path", os.path.join(self.get("resources_path"), "configuration"))
 		self.set("resources_logs_path", os.path.join(self.get("resources_path"), "logs"))
+		if self.get_or_default("database.path.relative", None):
+			self.set("database.path.absolute", os.path.join(self.get("root_path"), self.get("database.path.relative")))
+		elif self.get_or_default("database.path.absolute", None):
+			pass
+		else:
+			raise FileNotFoundError("Database path not found.")
 		if not self.get("exchange.id"):
 			self.set("exchange.id", constants.default.exchange.id)
 		self.set("exchange", deep_merge(self.get("exchange"), self.get(f"""exchanges.available.{self.get("exchange.id")}""")))
