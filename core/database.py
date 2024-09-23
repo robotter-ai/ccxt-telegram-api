@@ -1,10 +1,8 @@
 from sqlite3 import Connection
-
 import sqlite3
 from enum import Enum
 from pathlib import Path
 from singleton.singleton import Singleton
-
 from core.properties import properties
 
 
@@ -73,7 +71,9 @@ class Database(object):
 		else:
 			cursor.execute(query, parameters)
 
-		return cursor.fetchall()
+		rows = cursor.fetchall()
+
+		return [dict(row) for row in rows]
 
 	def select_single(self, query, parameters=None):
 		return self.execute(ConnectionType.READ_ONLY, query, parameters)[0]
