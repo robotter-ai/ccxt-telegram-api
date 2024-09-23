@@ -12,32 +12,26 @@ class ConnectionType(Enum):
 	READ_ONLY = 1
 
 
-# noinspection PyUnusedLocal
-def plain_row_factory(cursor, row):
-	return row[0]
-
-
 @Singleton
 class Database(object):
 	def __init__(self):
-		self.read_write_connection: Connection
-		self.read_only_connection: Connection
+		# noinspection PyTypeChecker
+		self.read_write_connection: Connection = None
+		# noinspection PyTypeChecker
+		self.read_only_connection: Connection = None
 		self.connect()
 
 	def close(self):
 		if self.read_write_connection:
 			self.read_write_connection.close()
-			# noinspection PyAttributeOutsideInit
 			self.read_write_connection = None
 		if self.read_only_connection:
 			self.read_only_connection.close()
-			# noinspection PyAttributeOutsideInit
 			self.read_only_connection = None
 
 	def connect(self):
 		if self.read_write_connection is None:
 			try:
-				# noinspection PyAttributeOutsideInit
 				self.read_write_connection = sqlite3.connect(
 					properties.get('database.sqlite.path'),
 					detect_types=sqlite3.PARSE_DECLTYPES
@@ -48,7 +42,6 @@ class Database(object):
 
 		if self.read_only_connection is None:
 			try:
-				# noinspection PyAttributeOutsideInit
 				self.read_only_connection = sqlite3.connect(
 					f"file:{properties.get('database.sqlite.path')}?immutable=1",
 					uri=True,
@@ -59,18 +52,13 @@ class Database(object):
 				raise exception
 
 	def execute(self, connection_type: ConnectionType, query: str, parameters=None):
-		if connection_type == ConnectionType.READ_WRITE:
-			connection = self.read_write_connection
-		elif connection_type == ConnectionType.READ_ONLY:
-			connection = self.read_only_connection
-		else:
-			raise ValueError("[Error] invalid connection type")
-
+		connection = self.read_write_connection if connection_type == ConnectionType.READ_WRITE else self.read_only_connection
 		cursor = connection.cursor()
 
 		if parameters is not None and isinstance(parameters, list) and isinstance(parameters[0], dict):
 			cursor.executemany(query, parameters)
 		else:
+			# noinspection PyTypeChecker
 			cursor.execute(query, parameters)
 
 		return cursor.fetchall()
@@ -92,14 +80,6 @@ class Database(object):
 
 	def mutate(self, query, parameters=None):
 		return self.execute(ConnectionType.READ_WRITE, query, parameters)
-
-	def plain_row_factory(self):
-		self.read_only_connection.row_factory = plain_row_factory
-		self.read_write_connection.row_factory = plain_row_factory
-
-	def normal_row_factory(self):
-		self.read_only_connection.row_factory = sqlite3.Row
-		self.read_write_connection.row_factory = sqlite3.Row
 
 	def commit(self):
 		self.read_write_connection.commit()
