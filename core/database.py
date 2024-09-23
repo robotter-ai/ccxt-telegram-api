@@ -35,7 +35,8 @@ class Database(object):
 			try:
 				self.read_write_connection = sqlite3.connect(
 					str(database_path.absolute()),
-					detect_types=sqlite3.PARSE_DECLTYPES
+					detect_types=sqlite3.PARSE_DECLTYPES,
+					isolation_level=None
 				)
 				self.read_write_connection.row_factory = sqlite3.Row
 			except Exception as exception:
