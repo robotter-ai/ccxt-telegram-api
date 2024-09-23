@@ -2,9 +2,10 @@ from sqlite3 import Connection
 
 import sqlite3
 from enum import Enum
+from pathlib import Path
 from singleton.singleton import Singleton
 
-from properties import properties
+from core.properties import properties
 
 
 class ConnectionType(Enum):
@@ -21,19 +22,21 @@ class Database(object):
 		self.read_only_connection: Connection = None
 		self.connect()
 
-	def close(self):
-		if self.read_write_connection:
-			self.read_write_connection.close()
-			self.read_write_connection = None
-		if self.read_only_connection:
-			self.read_only_connection.close()
-			self.read_only_connection = None
+	# noinspection PyMethodMayBeStatic
+	def _initialize_database(self, path: Path):
+		path.parent.mkdir(parents=True, exist_ok=True)
+		path.touch()
 
 	def connect(self):
+		database_path = Path(properties.get('database.path.absolute'))
+
+		if not database_path.exists():
+			self._initialize_database(database_path)
+
 		if self.read_write_connection is None:
 			try:
 				self.read_write_connection = sqlite3.connect(
-					properties.get('database.sqlite.path'),
+					str(database_path.absolute()),
 					detect_types=sqlite3.PARSE_DECLTYPES
 				)
 				self.read_write_connection.row_factory = sqlite3.Row
@@ -43,7 +46,7 @@ class Database(object):
 		if self.read_only_connection is None:
 			try:
 				self.read_only_connection = sqlite3.connect(
-					f"file:{properties.get('database.sqlite.path')}?immutable=1",
+					f"file:{str(database_path.absolute())}?immutable=1",
 					uri=True,
 					detect_types=sqlite3.PARSE_DECLTYPES
 				)
@@ -51,14 +54,23 @@ class Database(object):
 			except Exception as exception:
 				raise exception
 
+	def close(self):
+		if self.read_write_connection:
+			self.read_write_connection.close()
+			self.read_write_connection = None
+		if self.read_only_connection:
+			self.read_only_connection.close()
+			self.read_only_connection = None
+
 	def execute(self, connection_type: ConnectionType, query: str, parameters=None):
 		connection = self.read_write_connection if connection_type == ConnectionType.READ_WRITE else self.read_only_connection
 		cursor = connection.cursor()
 
-		if parameters is not None and isinstance(parameters, list) and isinstance(parameters[0], dict):
+		if parameters is None:
+			cursor.execute(query)
+		elif isinstance(parameters, list) and isinstance(parameters[0], dict):
 			cursor.executemany(query, parameters)
 		else:
-			# noinspection PyTypeChecker
 			cursor.execute(query, parameters)
 
 		return cursor.fetchall()
@@ -86,3 +98,6 @@ class Database(object):
 
 	def rollback(self):
 		self.read_write_connection.rollback()
+
+
+database = Database.instance()
