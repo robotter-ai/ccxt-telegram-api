@@ -285,6 +285,7 @@ dist
 resources/configuration/development.yml
 resources/configuration/staging.yml
 resources/configuration/production.yml
+resources/databases/database.sqlite
 resources/requests/http/http-client.private.env.json
 resources/logs/
 resources/temporary/

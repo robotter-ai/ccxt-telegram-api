@@ -24,6 +24,11 @@ logging:
 admin:
   username: "<admin username>"
   password: "<admin password>"
+#database:
+#  type: sqlite # sqlite, postgres
+#  path:
+#    relative: resources/databases/database.sqlite
+##    absolute: null
 telegram:
   enabled: false
   listen_commands: false
