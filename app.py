@@ -43,9 +43,14 @@ async def auth_sign_in(request: Credentials, response: Response):
 
 	credentials: Credentials = credentials
 
-	token_expiration_delta = datetime.timedelta(minutes=constants.authentication.jwt.token.expiration)
+	token_expiration_delta = datetime.timedelta(
+		seconds=properties.get_or_default("server.authentication.cookie.maxAge", constants.authentication.cookie.maxAge)
+	)
 	token = create_jwt_token(
-		data={"sub": credentials.id}, expires_delta=token_expiration_delta
+		data={
+			"sub": credentials.id
+		},
+		expires_delta=token_expiration_delta
 	)
 
 	response.set_cookie(
