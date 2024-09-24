@@ -17,7 +17,8 @@ import ccxt.async_support as async_ccxt
 from ccxt import Exchange as RESTExchange
 from ccxt.async_support import Exchange as WebSocketExchange
 from core.constants import constants
-# from core.database import database
+from core.cypher import cypher
+from core.database import database
 from core.properties import properties
 from core.types import Protocol, Credentials, Environment
 from core.utils import deep_merge
@@ -126,23 +127,31 @@ def get_user(id_or_user_telegram_id_or_jwt_token: str | int) -> Optional[DotMap[
 
 
 def update_user(credentials: Credentials) -> DotMap[str, Any]:
-	# print(database.select("select * from user"))
-	# database.insert(
-	# 	"""
-	# 		INSERT INTO
-	# 			user
-	# 				(exchange_id, exchange_environment, telegram_id, api_key, api_secret, sub_account_id)
-	# 			VALUES
-	# 				(:exchange_id, :exchange_environment, :telegram_id, :api_key, :api_secret, :sub_account_id)
-	# 	""", {
-	# 		"exchange_id": credentials.exchangeId,
-	# 		"exchange_environment": credentials.exchangeEnvironment,
-	# 		"telegram_id": credentials.userTelegramId,
-	# 		"api_key": credentials.exchangeApiKey,
-	# 		"api_secret": credentials.exchangeApiSecret,
-	# 		"sub_account_id": credentials.exchangeOptions.get("subAccountId") if credentials.exchangeOptions else None,
-	# 	}
-	# )
+	print(database.select("select * from user"))
+	database.insert(
+		"""
+			INSERT INTO
+				user
+					(id, exchange_id, exchange_environment, telegram_id, api_key, api_secret, sub_account_id, data)
+				VALUES
+					(:id, :exchange_id, :exchange_environment, :telegram_id, :api_key, :api_secret, :sub_account_id, :data)
+		""", {
+			"id": credentials.id,
+			"exchange_id": credentials.exchangeId,
+			"exchange_environment": credentials.exchangeEnvironment,
+			"telegram_id": cypher.encrypt(credentials.userTelegramId),
+			"api_key": cypher.encrypt(credentials.exchangeApiKey),
+			"api_secret": cypher.encrypt(credentials.exchangeApiSecret),
+			"sub_account_id": cypher.encrypt(credentials.exchangeOptions.get("subAccountId") if credentials.exchangeOptions else ""),
+			"data": str({
+				"favorites": {
+					"tokens": [],
+					"markets": []
+				}
+			}),
+		}
+	)
+	print(database.select("select * from user where id = :id", {"id": credentials.id}))
 
 	rest_exchange: RESTExchange = getattr(ccxt, credentials.exchangeId)({
 		"apiKey": credentials.exchangeApiKey,
@@ -192,9 +201,8 @@ def delete_user(idOrJwtToken: str):
 async def authenticate(credentials: Credentials):
 	# noinspection PyBroadException,PyUnusedLocal
 	try:
-		properties.set(credentials.id, credentials)
-
-		return properties.get(credentials.id)
+		# Automatically validates with the pydantic.BaseModel
+		return credentials
 	except Exception as exception:
 		return False
 
