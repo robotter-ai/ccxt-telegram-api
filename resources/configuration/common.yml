@@ -17,6 +17,9 @@ logging:
 admin:
   username: null
   password: null
+cyper:
+  password: null
+  salt: null
 database:
   type: sqlite # sqlite, postgres
   path:

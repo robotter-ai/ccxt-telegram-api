@@ -24,6 +24,9 @@ logging:
 admin:
   username: "<admin username>"
   password: "<admin password>"
+cypher:
+  password: "<cyper password>"
+  salt: "<cyper salt>"
 #database:
 #  type: sqlite # sqlite, postgres
 #  path:
