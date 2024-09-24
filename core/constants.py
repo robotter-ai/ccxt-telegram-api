@@ -22,14 +22,14 @@ constants = DotMap({
 			"algorithm": "HS256",
 			"token": {
 				"type": "bearer",
-				"expiration": 30  # in minutes
+				"expiration": 1800  # 30*60 seconds
 			}
 		},
 		"cookie": {
 			"httpOnly": True,
 			"secure": True,
 			"sameSite": "none",
-			"maxAge": 3600000,  # 60*60*1000
+			"maxAge": 1800,  # 30*60 seconds
 			"path": "/",
 			"domain": ".cube.exchange"
 		}
