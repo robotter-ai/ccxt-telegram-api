@@ -5,6 +5,8 @@ from pydantic import BaseModel
 from starlette.status import *
 from typing import Any, Dict, Optional
 
+from core.cypher import cypher
+
 
 class Environment(Enum):
 	PRODUCTION = "production"
@@ -154,4 +156,4 @@ class Credentials(BaseModel):
 
 	@property
 	def id(self):
-		return f"""{self.exchangeId}|{self.exchangeEnvironment}|{self.exchangeApiKey}"""
+		return cypher.encrypt(f"""{self.exchangeId}|{self.exchangeEnvironment}|{self.exchangeApiKey}""")
