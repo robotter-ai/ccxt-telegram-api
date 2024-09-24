@@ -21,15 +21,32 @@ class Database(object):
 		self.connect()
 
 	# noinspection PyMethodMayBeStatic
-	def _initialize_database(self, path: Path):
+	def _create_database(self, path: Path):
 		path.parent.mkdir(parents=True, exist_ok=True)
 		path.touch()
+
+	def _initialize_database(self):
+		self.mutate("""
+			create table user (
+				id TEXT	not null,
+				exchange_id TEXT not null,
+				exchange_environment TEXT not null,
+				telegram_id integer	not null,
+				api_key TEXT not null,
+				api_secret TEXT	not null,
+				sub_account_id integer,
+				data TEXT,
+				constraint user_pk primary key (id)
+			);
+		""")
 
 	def connect(self):
 		database_path = Path(properties.get('database.path.absolute'))
 
+		should_initialize_database = False
 		if not database_path.exists():
-			self._initialize_database(database_path)
+			self._create_database(database_path)
+			should_initialize_database = True
 
 		if self.read_write_connection is None:
 			try:
@@ -52,6 +69,9 @@ class Database(object):
 				self.read_only_connection.row_factory = sqlite3.Row
 			except Exception as exception:
 				raise exception
+
+		if should_initialize_database:
+			self._initialize_database()
 
 	def close(self):
 		if self.read_write_connection:
