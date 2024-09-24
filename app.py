@@ -13,12 +13,7 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse
 from typing import Any, Dict
 
-from core import controller
-from core.constants import constants
-from core.model import model
 from core.properties import properties
-from core.types import SystemStatus, APIResponse, CCXTAPIRequest, Credentials, APIResponseStatus
-from tests.integration_tests import IntegrationTests
 
 RUN_INTEGRATION_TESTS = os.getenv("RUN_INTEGRATION_TESTS", properties.get_or_default("testing.integration.run", "false")).lower() in ["true", "1"]
 
@@ -28,10 +23,15 @@ debug = properties.get_or_default('server.debug', True)
 app = FastAPI(debug=debug, root_path=root_path)
 properties.load(app)
 # Needs to come after properties loading
+from core.constants import constants
 from core.logger import logger
 from core.helpers import authenticate, unauthorized_exception, create_jwt_token, update_user, validate, \
 	delete_user, get_user, extract_jwt_token, extract_all_parameters, validate_request_token
+from core.types import SystemStatus, APIResponse, CCXTAPIRequest, Credentials, APIResponseStatus
+from core.model import model
 from core.telegram_bot import telegram
+from core import controller
+from tests.integration_tests import IntegrationTests
 
 
 @app.post("/auth/signIn")
