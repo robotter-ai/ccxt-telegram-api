@@ -96,8 +96,27 @@ class Database(object):
 
 		return [dict(row) for row in rows]
 
+	def select_single_value(self, query, parameters=None):
+		"""
+		Returns the first value from the first row of the query output
+		"""
+		row = self.select_single(query, parameters)
+
+		if isinstance(row, dict):
+			return next(iter(row.values()))
+		else:
+			return None
+
 	def select_single(self, query, parameters=None):
-		return self.execute(ConnectionType.READ_ONLY, query, parameters)[0]
+		"""
+		Returns the first row from of query output
+		"""
+		rows = self.execute(ConnectionType.READ_ONLY, query, parameters)
+
+		if isinstance(rows, list) and len(rows) > 0:
+			return rows[0]
+		else:
+			return None
 
 	def select(self, query, parameters=None):
 		return self.execute(ConnectionType.READ_ONLY, query, parameters)
