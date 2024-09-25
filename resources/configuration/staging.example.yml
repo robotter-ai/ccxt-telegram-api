@@ -12,7 +12,7 @@ server:
       httpOnly: true
       secure: true
       sameSite: "lax"
-      maxAge: 604800000 # 7*24*60*60*1000 = 604800000
+      maxAge: 604800 # 7*24*60*60 = 604800 seconds
       path: "/"
       domain: ".domain.com"
 logging:

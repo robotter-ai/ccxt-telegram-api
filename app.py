@@ -43,9 +43,14 @@ async def auth_sign_in(request: Credentials, response: Response):
 
 	credentials: Credentials = credentials
 
-	token_expiration_delta = datetime.timedelta(minutes=constants.authentication.jwt.token.expiration)
+	token_expiration_delta = datetime.timedelta(
+		seconds=properties.get_or_default("server.authentication.cookie.maxAge", constants.authentication.cookie.maxAge)
+	)
 	token = create_jwt_token(
-		data={"sub": credentials.id}, expires_delta=token_expiration_delta
+		data={
+			"sub": credentials.id
+		},
+		expires_delta=token_expiration_delta
 	)
 
 	response.set_cookie(
@@ -91,12 +96,23 @@ async def auth_refresh(request: Request, response: Response):
 
 	user = get_user(token)
 
-	token_expiration_delta = datetime.timedelta(minutes=constants.authentication.jwt.token.expiration)
+	token_expiration_delta = datetime.timedelta(
+		seconds=properties.get_or_default("server.authentication.cookie.maxAge", constants.authentication.cookie.maxAge)
+	)
 	token = create_jwt_token(
 		data={"sub": str(user.id)}, expires_delta=token_expiration_delta
 	)
 
-	response.set_cookie(key="token", value=f"Bearer {token}", httponly=True, secure=True, samesite="lax", max_age=60 * 60 * 1000, path="/", domain="")
+	response.set_cookie(
+		key="token",
+		value=f"Bearer {token}",
+		httponly=properties.get_or_default("server.authentication.cookie.httpOnly", constants.authentication.cookie.httpOnly),
+		secure=properties.get_or_default("server.authentication.cookie.secure", constants.authentication.cookie.secure),
+		samesite=properties.get_or_default("server.authentication.cookie.sameSite", constants.authentication.cookie.sameSite),
+		max_age=properties.get_or_default("server.authentication.cookie.maxAge", constants.authentication.cookie.maxAge),
+		path=properties.get_or_default("server.authentication.cookie.path", constants.authentication.cookie.path),
+		domain=properties.get_or_default("server.authentication.cookie.domain", constants.authentication.cookie.domain),
+	)
 
 	return {"token": token, "type": constants.authentication.jwt.token.type}
 
