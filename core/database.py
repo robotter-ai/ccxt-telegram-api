@@ -133,6 +133,12 @@ class Database(object):
 	def mutate(self, query, parameters=None):
 		return self.execute(ConnectionType.READ_WRITE, query, parameters)
 
+	def begin(self):
+		"""
+		Explicity beging a new transaction.
+		"""
+		self.read_write_connection.execute("BEGIN TRANSACTION;")
+
 	def commit(self):
 		self.read_write_connection.commit()
 
