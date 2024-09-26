@@ -36,12 +36,10 @@ from tests.integration_tests import IntegrationTests
 
 @app.post("/auth/signIn")
 async def auth_sign_in(request: Credentials, response: Response):
-	credentials = await authenticate(request)
-
-	if not credentials:
+	if not await authenticate(request):
 		raise unauthorized_exception
 
-	credentials: Credentials = credentials
+	credentials: Credentials = request
 
 	token_expiration_delta = datetime.timedelta(
 		seconds=properties.get_or_default("server.authentication.cookie.maxAge", constants.authentication.cookie.maxAge)
@@ -83,7 +81,7 @@ async def auth_sign_out(request: Request, response: Response):
 
 	delete_user(token)
 
-	return {"message": "Cookie successfully deleted."}
+	return {"message": "Successfully signed out."}
 
 
 @app.post("/auth/refresh")
