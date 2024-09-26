@@ -20,7 +20,9 @@ Content-Type: application/json
   "environment": "{{exchangeEnvironment}}",
   "method": "fetch_ohlcv",
   "parameters": {
-    "symbol": "tSOL/tUSDC"
+    "symbol": "tSOL/tUSDC",
+    "since": 1727182958,
+    "timeframe": "1d"
   }
 }
 
