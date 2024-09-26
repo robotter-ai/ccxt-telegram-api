@@ -25,7 +25,7 @@ properties.load(app)
 # Needs to come after properties loading
 from core.constants import constants
 from core.logger import logger
-from core.helpers import authenticate, unauthorized_exception, create_jwt_token, update_user, validate, \
+from core.helpers import create_jwt_token, update_user, validate, \
 	delete_user, get_user, extract_jwt_token, extract_all_parameters, validate_request_token
 from core.types import SystemStatus, APIResponse, CCXTAPIRequest, Credentials, APIResponseStatus
 from core.model import model
@@ -36,8 +36,7 @@ from tests.integration_tests import IntegrationTests
 
 @app.post("/auth/signIn")
 async def auth_sign_in(request: Credentials, response: Response):
-	if not await authenticate(request):
-		raise unauthorized_exception
+	await validate(request)
 
 	credentials: Credentials = request
 

@@ -203,15 +203,6 @@ def delete_user(idOrJwtToken: str):
 	# properties.set(f"""tokens.{jwtToken}""", None)
 
 
-async def authenticate(credentials: Credentials):
-	# noinspection PyBroadException,PyUnusedLocal
-	try:
-		# Automatically validates with the pydantic.BaseModel
-		return credentials
-	except Exception as exception:
-		return False
-
-
 def create_jwt_token(data: dict, expires_delta: datetime.timedelta):
 	to_encode = data.copy()
 	expiration_datetime = datetime.datetime.now(datetime.UTC) + expires_delta
@@ -277,7 +268,15 @@ async def validate_websocket_token(websocket: WebSocket):
 	return True
 
 
-async def validate(target: Request | WebSocket) -> Request:
+async def validate(target: Credentials | Request | WebSocket) -> Credentials | Request:
+	if isinstance(target, Credentials):
+		# noinspection PyBroadException,PyUnusedLocal
+		try:
+			# Automatically validates with the pydantic.BaseModel
+			return target
+		except Exception as exception:
+			raise unauthorized_exception
+
 	# noinspection PyUnusedLocal
 	try:
 		if properties.get_or_default("server.authentication.require.token", True):
