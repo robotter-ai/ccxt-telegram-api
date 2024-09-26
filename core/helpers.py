@@ -20,7 +20,7 @@ from core.constants import constants
 from core.cypher import cypher
 from core.database import database
 from core.properties import properties
-from core.types import Protocol, Credentials, Environment
+from core.types import Protocol, Credentials, Environment, WebSocketCloseCode
 from core.utils import deep_merge
 
 ccxt = sync_ccxt
@@ -216,7 +216,7 @@ def create_jwt_token(data: dict, expires_delta: datetime.timedelta):
 	to_encode = data.copy()
 	expiration_datetime = datetime.datetime.now(datetime.UTC) + expires_delta
 	to_encode.update({"exp": expiration_datetime})
-	encoded_jwt = jwt.encode(to_encode, properties.get("admin.password"), algorithm=constants.authentication.jwt.algorithm)
+	encoded_jwt = jwt.encode(to_encode, properties.get("cypher.password"), algorithm=constants.authentication.jwt.algorithm)
 
 	return encoded_jwt
 
@@ -238,7 +238,7 @@ async def validate_token(request: Request | WebSocket) -> bool:
 		if not token:
 			return False
 
-		payload = jwt.decode(token, properties.get("admin.password"), algorithms=[constants.authentication.jwt.algorithm])
+		payload = jwt.decode(token, properties.get("cypher.password"), algorithms=[constants.authentication.jwt.algorithm])
 		if not payload:
 			return False
 
@@ -266,11 +266,11 @@ async def validate_websocket_token(websocket: WebSocket):
 	# noinspection PyBroadException,PyUnusedLocal
 	try:
 		if not await validate_token(websocket):
-			await websocket.close(code=1008)
+			await websocket.close(code=WebSocketCloseCode.POLICY_VIOLATION.value)
 
 			return False
 	except Exception as exception:
-		await websocket.close(code=1008)
+		await websocket.close(code=WebSocketCloseCode.POLICY_VIOLATION.value)
 
 		return False
 
