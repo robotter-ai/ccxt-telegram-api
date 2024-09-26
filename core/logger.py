@@ -54,6 +54,21 @@ class Logger(object):
 		stream_handler.setLevel(self.level)
 		logger.addHandler(stream_handler)
 
+	def debug(self, message: str = "", object: Any = None, prefix: str = "", frame: Any = None):
+		self.log(logging.DEBUG, message, object, prefix, frame)
+
+	def info(self, message: str = "", object: Any = None, prefix: str = "", frame: Any = None):
+		self.log(logging.INFO, message, object, prefix, frame)
+
+	def warning(self, message: str = "", object: Any = None, prefix: str = "", frame: Any = None):
+		self.log(logging.WARNING, message, object, prefix, frame)
+
+	def error(self, message: str = "", object: Any = None, prefix: str = "", frame: Any = None):
+		self.log(logging.ERROR, message, object, prefix, frame)
+
+	def critical(self, message: str = "", object: Any = None, prefix: str = "", frame: Any = None):
+		self.log(logging.CRITICAL, message, object, prefix, frame)
+
 	def log(self, level: int, message: str = "", object: Any = None, prefix: str = "", frame: Any = None):
 		if not frame:
 			frame = inspect.currentframe().f_back
