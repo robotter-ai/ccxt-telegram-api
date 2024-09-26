@@ -26,19 +26,22 @@ class Database(object):
 		path.touch()
 
 	def _initialize_database(self):
-		self.mutate("""
-			create table user (
-				id TEXT	not null,
-				exchange_id TEXT not null,
-				exchange_environment TEXT not null,
-				telegram_id integer	not null,
-				api_key TEXT not null,
-				api_secret TEXT	not null,
-				sub_account_id integer,
-				data TEXT,
-				constraint user_pk primary key (id)
-			);
-		""")
+		self.mutate(
+			"""
+				create table user (
+					id TEXT	not null,
+					exchange_id TEXT not null,
+					exchange_environment TEXT not null,
+					telegram_id integer	not null,
+					api_key TEXT not null,
+					api_secret TEXT	not null,
+					sub_account_id integer,
+					data TEXT,
+					constraint user_pk primary key (id)
+				);
+			""",
+			auto_commit=True
+		)
 
 	def connect(self):
 		database_path = Path(properties.get('database.path.absolute'))
@@ -53,7 +56,6 @@ class Database(object):
 				self.read_write_connection = sqlite3.connect(
 					str(database_path.absolute()),
 					detect_types=sqlite3.PARSE_DECLTYPES,
-					isolation_level=None
 				)
 				self.read_write_connection.row_factory = sqlite3.Row
 			except Exception as exception:
@@ -62,7 +64,7 @@ class Database(object):
 		if self.read_only_connection is None:
 			try:
 				self.read_only_connection = sqlite3.connect(
-					f"file:{str(database_path.absolute())}?immutable=1",
+					f"file:{str(database_path.absolute())}?mode=ro",
 					uri=True,
 					detect_types=sqlite3.PARSE_DECLTYPES
 				)
@@ -81,7 +83,7 @@ class Database(object):
 			self.read_only_connection.close()
 			self.read_only_connection = None
 
-	def execute(self, connection_type: ConnectionType, query: str, parameters=None):
+	def execute(self, connection_type: ConnectionType, query: str, parameters=None, auto_commit=False):
 		connection = self.read_write_connection if connection_type == ConnectionType.READ_WRITE else self.read_only_connection
 		cursor = connection.cursor()
 
@@ -94,7 +96,12 @@ class Database(object):
 
 		rows = cursor.fetchall()
 
-		return [dict(row) for row in rows]
+		result = [dict(row) for row in rows]
+
+		if auto_commit:
+			self.commit()
+
+		return result
 
 	def select_single_value(self, query, parameters=None):
 		"""
@@ -111,7 +118,7 @@ class Database(object):
 		"""
 		Returns the first row from of query output
 		"""
-		rows = self.execute(ConnectionType.READ_ONLY, query, parameters)
+		rows = self.select(query, parameters)
 
 		if isinstance(rows, list) and len(rows) > 0:
 			return rows[0]
@@ -121,21 +128,21 @@ class Database(object):
 	def select(self, query, parameters=None):
 		return self.execute(ConnectionType.READ_ONLY, query, parameters)
 
-	def insert(self, query, parameters=None):
-		return self.execute(ConnectionType.READ_WRITE, query, parameters)
+	def insert(self, query, parameters=None, auto_commit=False):
+		return self.execute(ConnectionType.READ_WRITE, query, parameters, auto_commit)
 
-	def update(self, query, parameters=None):
-		return self.execute(ConnectionType.READ_WRITE, query, parameters)
+	def update(self, query, parameters=None, auto_commit=False):
+		return self.execute(ConnectionType.READ_WRITE, query, parameters, auto_commit)
 
-	def delete(self, query, parameters=None):
-		return self.execute(ConnectionType.READ_WRITE, query, parameters)
+	def delete(self, query, parameters=None, auto_commit=False):
+		return self.execute(ConnectionType.READ_WRITE, query, parameters, auto_commit)
 
-	def mutate(self, query, parameters=None):
-		return self.execute(ConnectionType.READ_WRITE, query, parameters)
+	def mutate(self, query, parameters=None, auto_commit=False):
+		return self.execute(ConnectionType.READ_WRITE, query, parameters, auto_commit)
 
 	def begin(self):
 		"""
-		Explicity beging a new transaction.
+		Explicitly begin a new transaction.
 		"""
 		self.read_write_connection.execute("BEGIN TRANSACTION;")
 
