@@ -156,4 +156,4 @@ class Credentials(BaseModel):
 
 	@property
 	def id(self):
-		return cypher.encrypt(f"""{self.exchangeId}|{self.exchangeEnvironment}|{self.exchangeApiKey}""")
+		return cypher.generate_hash(f"""{self.exchangeId}|{self.exchangeEnvironment}|{self.exchangeApiKey}""")

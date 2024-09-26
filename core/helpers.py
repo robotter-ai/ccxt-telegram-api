@@ -127,31 +127,36 @@ def get_user(id_or_user_telegram_id_or_jwt_token: str | int) -> Optional[DotMap[
 
 
 def update_user(credentials: Credentials) -> DotMap[str, Any]:
-	print(database.select("select * from user"))
-	database.insert(
-		"""
-			INSERT INTO
-				user
-					(id, exchange_id, exchange_environment, telegram_id, api_key, api_secret, sub_account_id, data)
-				VALUES
-					(:id, :exchange_id, :exchange_environment, :telegram_id, :api_key, :api_secret, :sub_account_id, :data)
-		""", {
-			"id": credentials.id,
-			"exchange_id": credentials.exchangeId,
-			"exchange_environment": credentials.exchangeEnvironment,
-			"telegram_id": cypher.encrypt(credentials.userTelegramId),
-			"api_key": cypher.encrypt(credentials.exchangeApiKey),
-			"api_secret": cypher.encrypt(credentials.exchangeApiSecret),
-			"sub_account_id": cypher.encrypt(credentials.exchangeOptions.get("subAccountId") if credentials.exchangeOptions else ""),
-			"data": str({
-				"favorites": {
-					"tokens": [],
-					"markets": []
-				}
-			}),
-		}
-	)
-	print(database.select("select * from user where id = :id", {"id": credentials.id}))
+	user_exists = database.select_single_value("""SELECT EXISTS(SELECT 1 FROM user WHERE id = :id);""", {"id": credentials.id})
+
+	if not user_exists:
+		database.insert(
+			"""
+				INSERT INTO
+					user
+						(id, exchange_id, exchange_environment, telegram_id, api_key, api_secret, sub_account_id, data)
+					VALUES
+						(:id, :exchange_id, :exchange_environment, :telegram_id, :api_key, :api_secret, :sub_account_id, :data)
+			""", {
+				"id": credentials.id,
+				"exchange_id": credentials.exchangeId,
+				"exchange_environment": credentials.exchangeEnvironment,
+				"telegram_id": cypher.encrypt(credentials.userTelegramId),
+				"api_key": cypher.encrypt(credentials.exchangeApiKey),
+				"api_secret": cypher.encrypt(credentials.exchangeApiSecret),
+				"sub_account_id": cypher.encrypt(credentials.exchangeOptions.get("subAccountId") if credentials.exchangeOptions else ""),
+				"data": str({
+					"favorites": {
+						"tokens": [],
+						"markets": []
+					}
+				}),
+			},
+			True
+		)
+		user = database.select_single("select * from user where id = :id", {"id": credentials.id})
+
+		print(user)
 
 	rest_exchange: RESTExchange = getattr(ccxt, credentials.exchangeId)({
 		"apiKey": credentials.exchangeApiKey,
