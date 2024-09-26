@@ -32,6 +32,22 @@ class HttpMethod(Enum):
 	OPTIONS = 'options'
 
 
+class WebSocketCloseCode(Enum):
+	NORMAL_CLOSURE = 1000  # Normal closure, meaning that the purpose for which the connection was established has been fulfilled.
+	GOING_AWAY = 1001  # An endpoint is "going away", such as a server going down or a browser navigating away.
+	PROTOCOL_ERROR = 1002  # An endpoint is terminating the connection due to a protocol error.
+	UNSUPPORTED_DATA = 1003  # Connection is closed because the received data type is not supported.
+	NO_STATUS_RECEIVED = 1005  # Reserved value for indicating no status code was received.
+	ABNORMAL_CLOSURE = 1006  # Abnormal closure, indicating that no close frame was received.
+	INVALID_FRAME_PAYLOAD_DATA = 1007  # Connection closed due to invalid frame payload data.
+	POLICY_VIOLATION = 1008  # Connection closed due to a policy violation (e.g., bad data).
+	MESSAGE_TOO_BIG = 1009  # Connection closed because a message was too large.
+	MANDATORY_EXTENSION = 1010  # Client requested an extension that the server did not negotiate.
+	INTERNAL_SERVER_ERROR = 1011  # Server is terminating the connection due to an internal server error.
+	SERVICE_RESTART = 1012  # Server is restarting.
+	TRY_AGAIN_LATER = 1013  # Temporary server condition, such as overload, causing the connection to be closed.
+
+
 class SystemStatus(Enum):
 	STOPPED = 'stopped'
 	STARTING = 'starting'
