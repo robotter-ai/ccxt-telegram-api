@@ -5,8 +5,6 @@ from pydantic import BaseModel
 from starlette.status import *
 from typing import Any, Dict, Optional
 
-from core.cypher import cypher
-
 
 class Environment(Enum):
 	PRODUCTION = "production"
@@ -177,7 +175,3 @@ class Credentials(BaseModel):
 	exchangeApiKey: str
 	exchangeApiSecret: str
 	exchangeOptions: Optional[dict[str, Any]] = None
-
-	@property
-	def id(self):
-		return cypher.generate_hash(f"""{self.exchangeId}|{self.exchangeEnvironment}|{self.exchangeApiKey}""")
