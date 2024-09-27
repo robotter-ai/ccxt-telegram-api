@@ -1,6 +1,5 @@
 import asyncio
 import atexit
-import datetime
 import logging
 import nest_asyncio
 import os
@@ -13,6 +12,7 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse
 from typing import Any, Dict
 
+from core.model import model
 from core.properties import properties
 
 RUN_INTEGRATION_TESTS = os.getenv("RUN_INTEGRATION_TESTS", properties.get_or_default("testing.integration.run", "false")).lower() in ["true", "1"]
@@ -25,10 +25,10 @@ properties.load(app)
 # Needs to come after properties loading
 from core.constants import constants
 from core.logger import logger
-from core.helpers import create_jwt_token, update_user, validate, \
-	delete_user, get_user, extract_jwt_token, extract_all_parameters, validate_request_token
+from core.helpers import validate, \
+	extract_all_parameters
+from core.users import users
 from core.types import SystemStatus, APIResponse, CCXTAPIRequest, Credentials, APIResponseStatus
-from core.model import model
 from core.telegram_bot import telegram
 from core import controller
 from tests.integration_tests import IntegrationTests
@@ -38,97 +38,34 @@ from tests.integration_tests import IntegrationTests
 async def auth_sign_in(request: Credentials, response: Response):
 	await validate(request)
 
-	credentials: Credentials = request
-
-	token_expiration_delta = datetime.timedelta(
-		seconds=properties.get_or_default("server.authentication.cookie.maxAge", constants.authentication.cookie.maxAge)
-	)
-	token = create_jwt_token(
-		data={
-			"sub": credentials.id
-		},
-		expires_delta=token_expiration_delta
-	)
-
-	response.set_cookie(
-		key="token",
-		value=f"Bearer {token}",
-		httponly=properties.get_or_default("server.authentication.cookie.httpOnly", constants.authentication.cookie.httpOnly),
-		secure=properties.get_or_default("server.authentication.cookie.secure", constants.authentication.cookie.secure),
-		samesite=properties.get_or_default("server.authentication.cookie.sameSite", constants.authentication.cookie.sameSite),
-		max_age=properties.get_or_default("server.authentication.cookie.maxAge", constants.authentication.cookie.maxAge),
-		path=properties.get_or_default("server.authentication.cookie.path", constants.authentication.cookie.path),
-		domain=properties.get_or_default("server.authentication.cookie.domain", constants.authentication.cookie.domain),
-	)
-
-	credentials.jwtToken = token
-
-	update_user(credentials)
-
-	return {"token": token, "type": constants.authentication.jwt.token.type}
+	return users.create_or_update(request, response)
 
 
 @app.post("/auth/signOut")
 async def auth_sign_out(request: Request, response: Response):
 	await validate(request)
 
-	parameters = await extract_all_parameters(request)
-
-	token = extract_jwt_token(parameters)
-
-	response.delete_cookie(key="token")
-
-	delete_user(token)
-
-	return {"message": "Successfully signed out."}
+	return users.delete(request, response)
 
 
 @app.post("/auth/refresh")
 async def auth_refresh(request: Request, response: Response):
 	await validate(request)
 
-	parameters = await extract_all_parameters(request)
-
-	token = extract_jwt_token(parameters)
-
-	user = get_user(token)
-
-	token_expiration_delta = datetime.timedelta(
-		seconds=properties.get_or_default("server.authentication.cookie.maxAge", constants.authentication.cookie.maxAge)
-	)
-	token = create_jwt_token(
-		data={"sub": str(user.id)}, expires_delta=token_expiration_delta
-	)
-
-	response.set_cookie(
-		key="token",
-		value=f"Bearer {token}",
-		httponly=properties.get_or_default("server.authentication.cookie.httpOnly", constants.authentication.cookie.httpOnly),
-		secure=properties.get_or_default("server.authentication.cookie.secure", constants.authentication.cookie.secure),
-		samesite=properties.get_or_default("server.authentication.cookie.sameSite", constants.authentication.cookie.sameSite),
-		max_age=properties.get_or_default("server.authentication.cookie.maxAge", constants.authentication.cookie.maxAge),
-		path=properties.get_or_default("server.authentication.cookie.path", constants.authentication.cookie.path),
-		domain=properties.get_or_default("server.authentication.cookie.domain", constants.authentication.cookie.domain),
-	)
-
-	return {"token": token, "type": constants.authentication.jwt.token.type}
+	return users.update(request, response)
 
 
 # noinspection PyUnusedLocal
 @app.get("/auth/isSignedIn")
 @app.post("/auth/isSignedIn")
-async def is_signed_in(request: Request, response: Response):
+async def is_signed_in(request: Request):
 	await validate(request)
 
 	response = APIResponse()
 
-	parameters = await extract_all_parameters(request)
+	user = users.get(request, response)
 
-	token = extract_jwt_token(parameters)
-
-	user = get_user(token)
-
-	if user or not validate_request_token(token):
+	if user:
 		response.title = "User is Signed In"
 		response.message = "User has already signed in."
 		response.result = True
@@ -175,11 +112,9 @@ async def service_status(request: Request) -> Dict[str, Any]:
 async def run(request: Request) -> JSONResponse:
 	await validate(request)
 
+	user = users.get(request, None)
+
 	parameters = await extract_all_parameters(request)
-
-	token = extract_jwt_token(parameters)
-
-	user = get_user(token)
 
 	options = CCXTAPIRequest(
 		user_id=user.id if user else None,
@@ -303,7 +238,7 @@ def test():
 		credentials.exchangeApiSecret = raw_credentials.get("exchange.api.secret")
 		credentials.exchangeOptions = raw_credentials.get("exchange.options")
 
-		user = update_user(credentials)
+		user = users.update(credentials, None)
 		rest_exchange = user.get("exchange.rest")
 		websocket_exchange = user.get("exchange.websocket")
 
