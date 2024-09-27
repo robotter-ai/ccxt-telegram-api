@@ -1,3 +1,5 @@
+from typing import Optional
+
 import base64
 import hashlib
 import os
@@ -36,7 +38,10 @@ class Cypher:
 
 		return kdf.derive(password.encode())
 
-	def encrypt(self, plaintext: str) -> str:
+	def encrypt(self, plaintext: str) -> Optional[str]:
+		if plaintext is None:
+			return None
+
 		"""Encrypt a string using AES encryption."""
 		iv = os.urandom(16)
 		cipher = Cipher(algorithms.AES(self.key), modes.CBC(iv), backend=self.backend)
@@ -50,7 +55,10 @@ class Cypher:
 
 		return result
 
-	def decrypt(self, encrypted_data: str) -> str:
+	def decrypt(self, encrypted_data: str) -> Optional[str]:
+		if encrypted_data is None:
+			return None
+
 		"""Decrypt a previously AES encrypted string."""
 		encrypted_data = base64.b64decode(encrypted_data.encode('utf-8'))
 		iv = encrypted_data[:16]
