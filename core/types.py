@@ -114,6 +114,14 @@ class Protocol(Enum):
 	WebSocket = "websocket"
 	FIX = "fix"
 
+	@staticmethod
+	def get_by_id(id_: str):
+		for protocol in Protocol:
+			if protocol.value == id_.lower():
+				return protocol
+
+		raise ValueError(f"""Protocol with id "{id_}" not found.""")
+
 
 class APIResponseStatus(Enum):
 	SUCCESS = ("success", HTTP_200_OK)
