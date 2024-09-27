@@ -9,3 +9,9 @@ create table user (
 	data TEXT,
 	constraint user_pk primary key (id)
 );
+
+create table user_token (
+	token TEXT	not null,
+	user_id TEXT not null,
+	constraint user_token_pk primary key (token)
+);
