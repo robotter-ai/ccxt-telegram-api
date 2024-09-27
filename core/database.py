@@ -39,6 +39,12 @@ class Database(object):
 					data TEXT,
 					constraint user_pk primary key (id)
 				);
+				
+				create table user_token (
+					token TEXT	not null,
+					user_id TEXT not null,
+					constraint user_token_pk primary key (token)
+				);
 			""",
 			auto_commit=True
 		)
