@@ -12,7 +12,6 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse
 from typing import Any, Dict
 
-from core.model import model
 from core.properties import properties
 
 RUN_INTEGRATION_TESTS = os.getenv("RUN_INTEGRATION_TESTS", properties.get_or_default("testing.integration.run", "false")).lower() in ["true", "1"]
@@ -23,6 +22,7 @@ debug = properties.get_or_default('server.debug', True)
 app = FastAPI(debug=debug, root_path=root_path)
 properties.load(app)
 # Needs to come after properties loading
+from core.model import model
 from core.constants import constants
 from core.logger import logger
 from core.helpers import validate, \
@@ -38,21 +38,23 @@ from tests.integration_tests import IntegrationTests
 async def auth_sign_in(request: Credentials, response: Response):
 	await validate(request)
 
-	return users.create_or_update(request, response)
+	user = await users.create_or_update(request, response)
+
+	return {"token": user.jwt_tokens[-1], "type": constants.authentication.jwt.token.type}
 
 
 @app.post("/auth/signOut")
 async def auth_sign_out(request: Request, response: Response):
 	await validate(request)
 
-	return users.delete(request, response)
+	return await users.delete(request, response)
 
 
 @app.post("/auth/refresh")
 async def auth_refresh(request: Request, response: Response):
 	await validate(request)
 
-	return users.update(request, response)
+	return await users.update(request, response)
 
 
 # noinspection PyUnusedLocal
@@ -63,7 +65,7 @@ async def is_signed_in(request: Request):
 
 	response = APIResponse()
 
-	user = users.get(request, response)
+	user = await users.get(request, response)
 
 	if user:
 		response.title = "User is Signed In"
@@ -112,7 +114,7 @@ async def service_status(request: Request) -> Dict[str, Any]:
 async def run(request: Request) -> JSONResponse:
 	await validate(request)
 
-	user = users.get(request, None)
+	user = await users.get(request, None)
 
 	parameters = await extract_all_parameters(request)
 
