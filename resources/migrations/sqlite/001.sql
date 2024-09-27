@@ -3,9 +3,8 @@ create table user (
 	exchange_id TEXT not null,
 	exchange_environment TEXT not null,
 	telegram_id integer	not null,
-	api_key TEXT not null,
-	api_secret TEXT	not null,
-	sub_account_id integer,
+	exchange_api_key TEXT not null,
+	exchange_api_secret TEXT	not null,
 	data TEXT,
 	constraint user_pk primary key (id)
 );
