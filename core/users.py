@@ -133,6 +133,8 @@ class Users:
 			from core.helpers import extract_all_parameters
 			parameters = await extract_all_parameters(request)
 
+			user.exchange_id = parameters.get("exchangeId")
+			user.exchange_environment = parameters.get("exchangeEnvironment")
 			user.telegram_id = parameters.get("userTelegramId")
 			user.jwt_tokens = [parameters.get("token")] if parameters.get("token") else []
 		elif source == UserSource.CREDENTIALS:
@@ -172,7 +174,7 @@ class Users:
 
 		return user
 
-	async def get(self, request: Credentials | Request, _response: Response, user: User = None) -> Optional[User]:
+	async def get(self, request: Credentials | Request, _response: Response = None, user: User = None) -> Optional[User]:
 		if not user:
 			user = await self.extract_user(request, UserSource.REQUEST)
 
@@ -323,6 +325,8 @@ class Users:
 		database.commit()
 
 		user.jwt_tokens.append(token)
+		self.data.ids[user.id] = user
+		self.data.telegram_ids[user.telegram_id] = user
 
 		return user
 
@@ -359,6 +363,9 @@ class Users:
 			},
 			auto_commit=True
 		)
+
+		self.data.ids[user.id] = user
+		self.data.telegram_ids[user.telegram_id] = user
 
 		return user
 
@@ -442,6 +449,12 @@ class Users:
 			for jwt_token in user.jwt_tokens:
 				if self.data.jwt_tokens.get(jwt_token):
 					del self.data.jwt_tokens[jwt_token]
+
+		if self.data.ids.get(user.id):
+			del self.data.ids[user.id]
+
+		if self.data.telegram_ids.get(user.telegram_id):
+			del self.data.telegram_ids[user.telegram_id]
 
 	def set_new_jwt_token_on_response(self, request: Request, response: Response, user: User) -> str:
 		if not user:
