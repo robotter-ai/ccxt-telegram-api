@@ -18,10 +18,11 @@ import ccxt as sync_ccxt
 import ccxt.async_support as async_ccxt
 from core.constants import constants
 from core.decorators import handle_exceptions
-from core.helpers import get_user, get_user_exchange
+from core.helpers import get_user_exchange
 from core.model import model
 from core.properties import properties
 from core.types import MagicMethod, Credentials, Protocol, Environment
+from core.users import users
 
 ccxt = sync_ccxt
 
@@ -149,8 +150,12 @@ class Telegram(object):
 		return False
 
 	# noinspection PyMethodMayBeStatic
-	def is_signed_in(self, user_telegram_id):
-		if get_user(user_telegram_id):
+	async def is_signed_in(self, user_telegram_id):
+		if await users.get({
+			"exchangeId": properties.get_or_default("exchange.id"),
+			"exchangeEnvironment": Environment.get_by_id(properties.get_or_default(f"exchange.environment")),
+			"userTelegramId": user_telegram_id
+		}):
 			return True
 
 		return False
@@ -552,7 +557,7 @@ class Telegram(object):
 		command = magic_method.id
 		command = self.camel_to_snake(command)
 
-		exchange = self.get_user_exchange(update)
+		exchange = await self.get_user_exchange(update)
 
 		method = getattr(self.model, command, None)
 
@@ -601,13 +606,13 @@ class Telegram(object):
 		return arg
 
 	# noinspection PyMethodMayBeStatic
-	def get_user_exchange(self, update: Update):
+	async def get_user_exchange(self, update: Update):
 		user_telegram_id = update.effective_user.id
 		exchange_id = properties.get_or_default("exchange.id")
 		exchange_environment = Environment.get_by_id(properties.get_or_default(f"exchange.environment"))
 		exchange_protocol = Protocol.REST
 
-		exchange = get_user_exchange(user_telegram_id, exchange_id, exchange_environment, exchange_protocol)
+		exchange = await get_user_exchange(user_telegram_id, exchange_id, exchange_environment, exchange_protocol)
 
 		return exchange
 
@@ -885,7 +890,7 @@ class Telegram(object):
 			token_id = None
 
 		if self.model.validate_token_id(token_id):
-			exchange = self.get_user_exchange(update)
+			exchange = await self.get_user_exchange(update)
 			token_id = self.model.sanitize_token_id(token_id)
 			message = await self.model.get_balance(exchange, token_id)
 
@@ -898,7 +903,7 @@ class Telegram(object):
 		if not await self.validate_request(update, context, True):
 			return
 
-		exchange = self.get_user_exchange(update)
+		exchange = await self.get_user_exchange(update)
 		message = await self.model.get_balances(exchange)
 
 		message = self.model.beautify(message)
@@ -916,7 +921,7 @@ class Telegram(object):
 			market_id = None
 
 		if self.model.validate_market_id(market_id):
-			exchange = self.get_user_exchange(update)
+			exchange = await self.get_user_exchange(update)
 			market_id = self.model.sanitize_market_id(market_id)
 			message = await self.model.get_open_orders(exchange, market_id)
 
@@ -951,7 +956,7 @@ class Telegram(object):
 			await self.send_message("Please enter a valid amount. Ex.: 123.4567", update, context, query)
 			return
 
-		exchange = self.get_user_exchange(update)
+		exchange = await self.get_user_exchange(update)
 		message = await self.model.market_buy_order(exchange, market_id, amount)
 
 		message = self.model.beautify(message)
@@ -982,7 +987,7 @@ class Telegram(object):
 			await self.send_message("Please enter a valid amount. Ex.: 123.4567", update, context, query)
 			return
 
-		exchange = self.get_user_exchange(update)
+		exchange = await self.get_user_exchange(update)
 		message = await self.model.market_sell_order(exchange, market_id, amount)
 
 		message = self.model.beautify(message)
@@ -1022,7 +1027,7 @@ class Telegram(object):
 			await self.send_message("Please enter a valid price. Ex.: 123.4567", update, context, query)
 			return
 
-		exchange = self.get_user_exchange(update)
+		exchange = await self.get_user_exchange(update)
 		message = await self.model.limit_buy_order(exchange, market_id, amount, price)
 
 		message = self.model.beautify(message)
@@ -1062,7 +1067,7 @@ class Telegram(object):
 			await self.send_message("Please enter a valid price. Ex.: 123.4567", update, context, query)
 			return
 
-		exchange = self.get_user_exchange(update)
+		exchange = await self.get_user_exchange(update)
 		message = await self.model.limit_sell_order(exchange, market_id, amount, price)
 
 		message = self.model.beautify(message)
@@ -1121,7 +1126,7 @@ class Telegram(object):
 				await self.send_message("Please enter a valid price. Ex.: 123.4567", update, context, query)
 				return
 
-		exchange = self.get_user_exchange(update)
+		exchange = await self.get_user_exchange(update)
 		message = await self.model.place_order(exchange, market_id, order_type, order_side, amount, price)
 
 		message = self.model.beautify(message)
