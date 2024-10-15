@@ -163,4 +163,4 @@ class Database(object):
 		self.read_write_connection.rollback()
 
 
-database = Database.instance()
+database: Database = Database.instance()
