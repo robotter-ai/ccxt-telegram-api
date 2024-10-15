@@ -113,8 +113,9 @@ class Properties(object):
 		else:
 			raise FileNotFoundError("Database path not found.")
 		if not self.get("exchange.id"):
-			self.set("exchange.id", constants.default.exchange.id)
+			self.set("exchange.id", os.environ.get("EXCHANGE_ID", constants.default.exchange.id))
 		self.set("exchange", deep_merge(self.get("exchange"), self.get(f"""exchanges.available.{self.get("exchange.id")}""")))
+		self.set("exchange.environment", os.environ.get("ENVIRONMENT", self.get("exchange.environment")))
 
 
 properties = Properties.instance()
