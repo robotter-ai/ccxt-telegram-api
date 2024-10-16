@@ -99,8 +99,8 @@ def extract_jwt_token(parameters: DotMap[str, Any]):
 	return None
 
 
-def get_user_exchange(id_or_user_telegram_id_or_jwt_token: str | int, exchange_id: str, exchange_environment: Environment, exchange_protocol: Protocol) -> Optional[RESTExchange | WebSocketExchange]:
-	user = users.get(id_or_user_telegram_id_or_jwt_token)
+!!!async def get_user_exchange(id_or_user_telegram_id_or_jwt_token: str | int, exchange_id: str, exchange_environment: Environment, exchange_protocol: Protocol) -> Optional[RESTExchange | WebSocketExchange]:
+	user = await users.get(id_or_user_telegram_id_or_jwt_token)
 
 	if user:
 		return properties.get_or_default(f"""users.{user.id}.exchange.{exchange_id}.{exchange_environment.value}.{exchange_protocol.value}""")
